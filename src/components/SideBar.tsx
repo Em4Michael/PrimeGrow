@@ -25,7 +25,7 @@ const Sidebar: React.FC<{
         <div className="flex items-center cursor-pointer">
           <Image src="/assets/logo2.png" alt="logo" width={40} height={40} />
           <h1
-            className={`text-xl font-bold ml-0 transition-opacity duration-300 ${
+            className={`text-xl font-bold ml-4 transition-opacity duration-300 ${
               isOpen ? 'opacity-100' : 'opacity-0'
             }`}
           >
