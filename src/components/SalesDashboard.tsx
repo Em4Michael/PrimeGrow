@@ -14,7 +14,7 @@ import {
   ArcElement,
 } from 'chart.js';
 import { FaShoppingCart, FaChartLine, FaDownload, FaPlus, FaMoneyBill } from 'react-icons/fa';
-import axios, { AxiosError } from 'axios'; // Import AxiosError
+import axios, { AxiosError } from 'axios';
 import Cookies from 'js-cookie';
 
 ChartJS.register(
@@ -50,15 +50,50 @@ interface OrderFormData {
   paymentMethod: 'card' | 'transfer';
 }
 
+// Define the structure of a location entry in usersByLocation
+interface LocationSales {
+  address: string;
+  totalSales: number;
+}
+
+// Define the structure of a user entry in usersByName
+interface UserSales {
+  name: string;
+  totalSales: number;
+}
+
+// Define the structure of the sales report
+interface SalesReport {
+  actualSales: number;
+  predictedSales: number;
+  idealSales: number;
+  usersByLocation: LocationSales[];
+  usersByName: UserSales[];
+}
+
 const SalesDashboard: React.FC = () => {
-  const [salesReport, setSalesReport] = useState<any>({ actualSales: 0, predictedSales: 0, idealSales: 0, usersByLocation: [], usersByName: [] });
+  const [salesReport, setSalesReport] = useState<SalesReport>({
+    actualSales: 0,
+    predictedSales: 0,
+    idealSales: 0,
+    usersByLocation: [],
+    usersByName: [],
+  });
   const [timeFilter, setTimeFilter] = useState('monthly');
   const [stockForm, setStockForm] = useState<StockFormData>({
-    item: '', quantity: 0, pricePerCarton: 0, stemAmount: 2, totalPlantAmount: 500, weeklyCapacity: 0,
+    item: '',
+    quantity: 0,
+    pricePerCarton: 0,
+    stemAmount: 2,
+    totalPlantAmount: 500,
+    weeklyCapacity: 0,
   });
   const [feeForm, setFeeForm] = useState<FeeFormData>({ deliveryFee: 0, taxRate: 0 });
   const [orderForm, setOrderForm] = useState<OrderFormData>({
-    userId: '', items: [], address: '', paymentMethod: 'card',
+    userId: '',
+    items: [],
+    address: '',
+    paymentMethod: 'card',
   });
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -87,7 +122,11 @@ const SalesDashboard: React.FC = () => {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const salesResponse = await axios.get(`http://localhost:5000/api/sales-reports?timeframe=${timeFilter}`, config);
         const report = salesResponse.data.recentReport || salesResponse.data.savedReports?.[0] || {
-          actualSales: 0, predictedSales: 0, idealSales: 0, usersByLocation: [], usersByName: []
+          actualSales: 0,
+          predictedSales: 0,
+          idealSales: 0,
+          usersByLocation: [],
+          usersByName: [],
         };
         setSalesReport(report);
 
@@ -103,7 +142,6 @@ const SalesDashboard: React.FC = () => {
         const ordersResponse = await axios.get('http://localhost:5000/api/orders', config);
         setOrders(ordersResponse.data || []);
       } catch (error) {
-        // Narrow the error type to AxiosError or Error
         if (axios.isAxiosError(error)) {
           const axiosError = error as AxiosError<{ error?: string }>;
           console.error('Error fetching data:', axiosError.response?.data || axiosError.message);
@@ -162,9 +200,9 @@ const SalesDashboard: React.FC = () => {
     datasets: [{
       label: 'Sales Comparison ($)',
       data: [
-        salesReport?.actualSales || 0,
-        salesReport?.predictedSales || 0,
-        salesReport?.idealSales || 0,
+        salesReport.actualSales || 0,
+        salesReport.predictedSales || 0,
+        salesReport.idealSales || 0,
       ],
       backgroundColor: ['#36A2EB', '#FFCE56', '#4BC0C0'],
     }],
@@ -176,9 +214,9 @@ const SalesDashboard: React.FC = () => {
       {
         label: 'Actual Sales',
         data: [
-          (salesReport?.actualSales * 0.8) || 4500,
-          salesReport?.actualSales || 7000,
-          (salesReport?.actualSales * 1.2) || 8900,
+          (salesReport.actualSales * 0.8) || 4500,
+          salesReport.actualSales || 7000,
+          (salesReport.actualSales * 1.2) || 8900,
         ],
         borderColor: '#36A2EB',
         tension: 0.4,
@@ -186,9 +224,9 @@ const SalesDashboard: React.FC = () => {
       {
         label: 'Predicted Sales',
         data: [
-          (salesReport?.predictedSales * 0.8) || 4800,
-          salesReport?.predictedSales || 7200,
-          (salesReport?.predictedSales * 1.2) || 9100,
+          (salesReport.predictedSales * 0.8) || 4800,
+          salesReport.predictedSales || 7200,
+          (salesReport.predictedSales * 1.2) || 9100,
         ],
         borderColor: '#FFCE56',
         tension: 0.4,
@@ -197,10 +235,10 @@ const SalesDashboard: React.FC = () => {
   };
 
   const salesByRegionData = {
-    labels: salesReport?.usersByLocation?.map(loc => loc.address) || [],
+    labels: salesReport.usersByLocation.map(loc => loc.address) || [],
     datasets: [{
       label: 'Sales by Region ($)',
-      data: salesReport?.usersByLocation?.map(loc => loc.totalSales || 0) || [],
+      data: salesReport.usersByLocation.map(loc => loc.totalSales || 0) || [],
       backgroundColor: [
         '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
         '#FF9F40', '#C9CB3F', '#66CCCC', '#FF6666', '#CC99CC'
@@ -211,10 +249,10 @@ const SalesDashboard: React.FC = () => {
   };
 
   const salesBySalespersonData = {
-    labels: salesReport?.usersByName?.map(user => user.name) || [],
+    labels: salesReport.usersByName.map(user => user.name) || [],
     datasets: [{
       label: 'Sales by Individual ($)',
-      data: salesReport?.usersByName?.map(user => user.totalSales || 0) || [],
+      data: salesReport.usersByName.map(user => user.totalSales || 0) || [],
       backgroundColor: 'rgba(255, 99, 132, 0.7)',
       borderColor: 'rgba(255, 99, 132, 1)',
       borderWidth: 2,
@@ -226,9 +264,9 @@ const SalesDashboard: React.FC = () => {
   };
 
   const maxSalesValue = Math.max(
-    salesReport?.actualSales || 0,
-    salesReport?.predictedSales || 0,
-    salesReport?.idealSales || 0,
+    salesReport.actualSales || 0,
+    salesReport.predictedSales || 0,
+    salesReport.idealSales || 0,
     10000
   );
 
@@ -424,15 +462,15 @@ const SalesDashboard: React.FC = () => {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl shadow-lg">
             <h3 className="text-sm font-medium text-gray-500">Actual Sales</h3>
-            <p className="text-xl font-bold text-gray-800">${(salesReport?.actualSales || 0).toLocaleString()}</p>
+            <p className="text-xl font-bold text-gray-800">${(salesReport.actualSales || 0).toLocaleString()}</p>
           </div>
           <div className="bg-white p-4 rounded-xl shadow-lg">
             <h3 className="text-sm font-medium text-gray-500">Predicted Sales</h3>
-            <p className="text-xl font-bold text-gray-800">${(salesReport?.predictedSales || 0).toLocaleString()}</p>
+            <p className="text-xl font-bold text-gray-800">${(salesReport.predictedSales || 0).toLocaleString()}</p>
           </div>
           <div className="bg-white p-4 rounded-xl shadow-lg">
             <h3 className="text-sm font-medium text-gray-500">Ideal Sales</h3>
-            <p className="text-xl font-bold text-gray-800">${(salesReport?.idealSales || 0).toLocaleString()}</p>
+            <p className="text-xl font-bold text-gray-800">${(salesReport.idealSales || 0).toLocaleString()}</p>
           </div>
           <div className="bg-white p-4 rounded-xl shadow-lg">
             <h3 className="text-sm font-medium text-gray-500">Total Sales (Orders)</h3>
