@@ -1,0 +1,18 @@
+    const { user } = useAuth();
+  const router = useRouter();
+
+  
+  useEffect(() => {
+    const checkUserRole = () => {
+      if (!user) {
+        router.push('/login'); // Redirect to login if not authenticated
+      } else if (user.role !== 'superadmin') {
+        router.push('/'); // Redirect non-superadmins
+      }
+    };
+  
+    if (user !== null) {
+      checkUserRole(); // Only check if user is loaded
+    }
+  }, [user, router]);
+  

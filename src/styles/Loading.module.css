@@ -1,0 +1,47 @@
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: spin 1.5s linear infinite;
+}
+
+.spinnerSegment {
+  width: 50%;
+  height: 50%;
+  background: transparent;
+  position: absolute;
+  border: 8px solid transparent;
+  border-radius: 50%;
+}
+
+.segment1 {
+  border-top: 8px solid #4caf50;
+  transform: rotate(0deg);
+}
+
+.segment2 {
+  border-right: 8px solid #4caf50;
+  transform: rotate(90deg);
+}
+
+.segment3 {
+  border-bottom: 8px solid #4caf50;
+  transform: rotate(180deg);
+}
+
+.segment4 {
+  border-left: 8px solid #4caf50;
+  transform: rotate(270deg);
+}
