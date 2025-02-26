@@ -1,4 +1,3 @@
-// Dashboard.tsx
 'use client';
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/SideBar';
@@ -9,15 +8,20 @@ import SalesDashboard from '../../components/SalesDashboard';
 import InstrumentControl from '../../components/InstrumentControl';
 import Alert from '../../components/Alert';
 import Notification from '../../components/NotificationProps';
-import WorkersAttendance from '../../components/WorkersAttendance'; // New component
+import WorkersAttendance from '../../components/WorkersAttendance';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 
 const Dashboard: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isClient, setIsClient] = useState(false); // Track client-side rendering
   const [activeComponent, setActiveComponent] = useState('default');
   const { user } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    setIsClient(true); // Set to true once mounted on the client
+  }, []);
 
   useEffect(() => {
     if (user === null) return;
@@ -59,7 +63,7 @@ const Dashboard: React.FC = () => {
         return <SalesDashboard />;
       case 'Alert':
         return <Alert />;
-      case 'Notification': 
+      case 'Notification':
         return <Notification />;
       default:
         return (
@@ -85,9 +89,9 @@ const Dashboard: React.FC = () => {
         <main
           className="flex-1 overflow-y-auto p-2 transition-all duration-300"
           style={{
-            marginLeft: isSidebarOpen && window.innerWidth >= 768 ? '16rem' : '3rem',
+            marginLeft: isClient && isSidebarOpen && window.innerWidth >= 768 ? '16rem' : '3rem',
             marginTop: '4rem',
-          }}
+          }} 
         >
           <div className="w-full max-w-7xl mx-auto">
             {renderComponent()}
@@ -98,4 +102,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;   
+export default Dashboard;

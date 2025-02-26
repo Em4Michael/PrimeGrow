@@ -12,6 +12,13 @@ interface AttendanceRecord {
   timestamp: string;
 }
 
+interface WorkersAttendanceProps {
+  isSidebarOpen: boolean;
+}
+
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://primegrow-server.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
+
 const WorkersAttendance: React.FC = () => {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [filteredData, setFilteredData] = useState<AttendanceRecord[]>([]);
@@ -24,9 +31,6 @@ const WorkersAttendance: React.FC = () => {
   const [endDate, setEndDate] = useState<string>('');
   const [page, setPage] = useState(1);
   const recordsPerPage = 20;
-
-  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://primegrow-server.onrender.com';
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
   const applyFiltersAndSort = useCallback((data: AttendanceRecord[]) => {
     let result = [...data];
@@ -91,7 +95,7 @@ const WorkersAttendance: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, applyFiltersAndSort]);
+  }, [applyFiltersAndSort]);
 
   const connectWebSocket = useCallback(() => {
     const socket = new WebSocket(WS_URL);
@@ -120,7 +124,7 @@ const WorkersAttendance: React.FC = () => {
     socket.onclose = () => console.log('WebSocket disconnected');
     socket.onerror = (err) => console.error('WebSocket error:', err);
     return socket;
-  }, [WS_URL, applyFiltersAndSort]);
+  }, [applyFiltersAndSort]);
 
   useEffect(() => {
     fetchAttendanceData();
@@ -147,13 +151,13 @@ const WorkersAttendance: React.FC = () => {
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
-    <div className="p-0 w-full min-h-screen overflow-x-hidden">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="bg-white rounded-2xl shadow-xl p-6 max-w-5xl mx-auto w-full"
-      >
+    <div className="w-full min-h-screen overflow-x-hidden">
+          <motion.div
+             initial={{ opacity: 0, y: -20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.8, ease: 'easeOut' }}
+             className="p-0 max-w-6xl mx-auto w-full"
+           >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-extrabold text-gray-800">Workers Attendance</h2>
           <button
@@ -168,7 +172,7 @@ const WorkersAttendance: React.FC = () => {
           <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-center">{error}</div>
         )}
 
-        <div className="mb-6flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <input
               type="date"
