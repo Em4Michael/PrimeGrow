@@ -330,14 +330,17 @@ const SalesDashboard: React.FC = () => {
     animation: { animateScale: true, animateRotate: true },
   };
 
-  const enhancedBarChartOptions = {
+  const enhancedBarChartOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (value: number) => `$${value.toLocaleString()}`,
+          callback: (value: number | string, _index: number, _ticks: any[]) => {
+            const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+            return `$${numericValue.toLocaleString()}`;
+          },
           font: { size: 12 },
           color: '#666',
         },
@@ -372,7 +375,10 @@ const SalesDashboard: React.FC = () => {
         color: '#333',
       },
     },
-    animation: { duration: 1500, easing: 'easeOutBounce' },
+    animation: {
+      duration: 1500,
+      easing: 'easeOutBounce' as const,
+    },
   };
 
   const handleCreateStock = async (e: React.FormEvent) => {
