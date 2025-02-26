@@ -16,6 +16,7 @@ import {
 import { FaShoppingCart, FaChartLine, FaDownload, FaPlus, FaMoneyBill } from 'react-icons/fa';
 import axios, { AxiosError } from 'axios';
 import Cookies from 'js-cookie';
+import { ChartOptions } from 'chart.js';
 
 ChartJS.register(
   CategoryScale,
@@ -279,7 +280,11 @@ const SalesDashboard: React.FC = () => {
         max: Math.ceil(maxSalesValue * 1.2 / 1000) * 1000,
         ticks: {
           stepSize: Math.ceil(maxSalesValue / 5000) * 1000,
-          callback: (value: number) => `$${value.toLocaleString()}`,
+          callback: (value: number | string, _index: number, _ticks: any[]) => {
+            // Since this is a LinearScale, value will be a number, but we type it as number | string to satisfy Chart.js
+            const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+            return `$${numericValue.toLocaleString()}`;
+          },
           font: { size: 10 },
         },
       },
