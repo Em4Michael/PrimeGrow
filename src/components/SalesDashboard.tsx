@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import Loading from './Loading';
-import {
+import { motion } from 'framer-motion';
+import { ChartOptions, Scale, Tick, TooltipItem } from 'chart.js';import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -13,10 +14,9 @@ import {
   Legend,
   ArcElement,
 } from 'chart.js';
-import { FaShoppingCart, FaChartLine, FaDownload, FaPlus, FaMoneyBill } from 'react-icons/fa';
+import { FaShoppingCart, FaDownload, FaPlus, FaMoneyBill } from 'react-icons/fa';
 import axios, { AxiosError } from 'axios';
 import Cookies from 'js-cookie';
-import { ChartOptions } from 'chart.js';
 
 ChartJS.register(
   CategoryScale,
@@ -30,6 +30,7 @@ ChartJS.register(
   ArcElement
 );
 
+// Interfaces remain unchanged
 interface StockFormData {
   item: string;
   quantity: number;
@@ -107,7 +108,6 @@ const SalesDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       const token = Cookies.get('token');
-
       if (!token) {
         setSalesReport({ actualSales: 0, predictedSales: 0, idealSales: 0, usersByLocation: [], usersByName: [] });
         setStockItems([]);
@@ -117,7 +117,6 @@ const SalesDashboard: React.FC = () => {
         setLoading(false);
         return;
       }
-
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const salesResponse = await axios.get(`${API_URL}/api/sales-reports?timeframe=${timeFilter}`, config);
@@ -129,16 +128,12 @@ const SalesDashboard: React.FC = () => {
           usersByName: [],
         };
         setSalesReport(report);
-
         const stockResponse = await axios.get(`${API_URL}/api/stock`, config);
         setStockItems(stockResponse.data || []);
-
         const usersResponse = await axios.get(`${API_URL}/api/users`, config);
         setUsers(usersResponse.data || []);
-
         const feeResponse = await axios.get(`${API_URL}/api/fee/recent`, config);
         setFees(feeResponse.data || { deliveryFee: 0, taxRate: 0 });
-
         const ordersResponse = await axios.get(`${API_URL}/api/orders`, config);
         setOrders(ordersResponse.data || []);
       } catch (error) {
@@ -184,9 +179,7 @@ const SalesDashboard: React.FC = () => {
     }
   };
 
-  const latestStock = useMemo(() => {
-    return stockItems.length > 0 ? stockItems[stockItems.length - 1] : null;
-  }, [stockItems]);
+  const latestStock = useMemo(() => stockItems.length > 0 ? stockItems[stockItems.length - 1] : null, [stockItems]);
 
   const totalSales = useMemo(() => {
     const subtotal = orderForm.items.reduce((sum, item) => sum + item.quantity * item.pricePerCarton, 0);
@@ -195,15 +188,12 @@ const SalesDashboard: React.FC = () => {
     return subtotal + fees.deliveryFee + taxAmount;
   }, [orderForm.items, fees]);
 
+  // Chart Data (unchanged)
   const salesComparisonData = {
     labels: ['Actual', 'Predicted', 'Ideal'],
     datasets: [{
       label: 'Sales Comparison ($)',
-      data: [
-        salesReport.actualSales || 0,
-        salesReport.predictedSales || 0,
-        salesReport.idealSales || 0,
-      ],
+      data: [salesReport.actualSales || 0, salesReport.predictedSales || 0, salesReport.idealSales || 0],
       backgroundColor: ['#36A2EB', '#FFCE56', '#4BC0C0'],
     }],
   };
@@ -211,26 +201,8 @@ const SalesDashboard: React.FC = () => {
   const salesTrendData = {
     labels: ['Start', 'Mid', 'End'],
     datasets: [
-      {
-        label: 'Actual Sales',
-        data: [
-          (salesReport.actualSales * 0.8) || 4500,
-          salesReport.actualSales || 7000,
-          (salesReport.actualSales * 1.2) || 8900,
-        ],
-        borderColor: '#36A2EB',
-        tension: 0.4,
-      },
-      {
-        label: 'Predicted Sales',
-        data: [
-          (salesReport.predictedSales * 0.8) || 4800,
-          salesReport.predictedSales || 7200,
-          (salesReport.predictedSales * 1.2) || 9100,
-        ],
-        borderColor: '#FFCE56',
-        tension: 0.4,
-      },
+      { label: 'Actual Sales', data: [(salesReport.actualSales * 0.8) || 4500, salesReport.actualSales || 7000, (salesReport.actualSales * 1.2) || 8900], borderColor: '#36A2EB', tension: 0.4 },
+      { label: 'Predicted Sales', data: [(salesReport.predictedSales * 0.8) || 4800, salesReport.predictedSales || 7200, (salesReport.predictedSales * 1.2) || 9100], borderColor: '#FFCE56', tension: 0.4 },
     ],
   };
 
@@ -239,10 +211,7 @@ const SalesDashboard: React.FC = () => {
     datasets: [{
       label: 'Sales by Region ($)',
       data: salesReport.usersByLocation.map(loc => loc.totalSales || 0) || [],
-      backgroundColor: [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-        '#FF9F40', '#C9CB3F', '#66CCCC', '#FF6666', '#CC99CC'
-      ],
+      backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CB3F', '#66CCCC', '#FF6666', '#CC99CC'],
       borderColor: '#ffffff',
       borderWidth: 2,
     }],
@@ -259,18 +228,13 @@ const SalesDashboard: React.FC = () => {
       hoverBackgroundColor: 'rgba(255, 99, 132, 1)',
       hoverBorderColor: 'rgba(255, 99, 132, 1)',
       borderRadius: 5,
-      barThickness: 30,
+      barThickness: 20, // Reduced for mobile
     }],
   };
 
-  const maxSalesValue = Math.max(
-    salesReport.actualSales || 0,
-    salesReport.predictedSales || 0,
-    salesReport.idealSales || 0,
-    10000
-  );
+  const maxSalesValue = Math.max(salesReport.actualSales || 0, salesReport.predictedSales || 0, salesReport.idealSales || 0, 10000);
 
-  const chartOptions = {
+  const chartOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
     scales: {
@@ -279,55 +243,56 @@ const SalesDashboard: React.FC = () => {
         max: Math.ceil(maxSalesValue * 1.2 / 1000) * 1000,
         ticks: {
           stepSize: Math.ceil(maxSalesValue / 5000) * 1000,
-          callback: (value: number | string, _index: number, _ticks: any[]) => {
-            const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-            return `$${numericValue.toLocaleString()}`;
+          callback: function (this: Scale, tickValue: string | number): string {
+            const value = typeof tickValue === 'string' ? parseFloat(tickValue) : tickValue;
+            return `$${value.toLocaleString()}`;
           },
-          font: { size: 10 },
+          font: { size: 8 },
         },
       },
       x: {
         ticks: {
-          font: { size: 10 },
+          font: { size: 8 },
+          maxRotation: 45,
+          minRotation: 45,
         },
       },
     },
     plugins: {
       legend: {
-        position: 'top' as const,
-        labels: { font: { size: 12 } },
+        position: 'top',
+        labels: { font: { size: 8 }, boxWidth: 10 },
       },
       tooltip: {
         callbacks: {
-          label: (context: any) => `${context.dataset.label}: $${context.raw.toFixed(2)}`,
+          label: (context: TooltipItem<'bar'>): string => {
+            const value = context.raw as number;
+            return `${context.dataset.label}: $${value.toFixed(2)}`;
+          },
         },
+        bodyFont: { size: 10 },
       },
     },
   };
-
-  const pieChartOptions = {
+  
+  const pieChartOptions: ChartOptions<'pie'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'right' as const,
-        labels: { boxWidth: 15, padding: 15, font: { size: 12 } },
-      },
+      legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 8 } } },
       tooltip: {
         callbacks: {
-          label: (context: any) => `${context.label}: $${context.raw.toFixed(2)}`,
+          label: (context: TooltipItem<'pie'>): string => {
+            const value = context.raw as number; // Type assertion
+            return `${context.label}: $${value.toFixed(2)}`;
+          },
         },
+        bodyFont: { size: 10 },
       },
-      title: {
-        display: true,
-        text: 'Sales by Region',
-        font: { size: 16 },
-        padding: { top: 10, bottom: 20 },
-      },
+      title: { display: true, text: 'Sales by Region', font: { size: 12 }, padding: { top: 5, bottom: 5 } },
     },
-    animation: { animateScale: true, animateRotate: true },
   };
-
+  
   const enhancedBarChartOptions: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -335,19 +300,17 @@ const SalesDashboard: React.FC = () => {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (value: number | string, _index: number, _ticks: any[]) => {
-            const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-            return `$${numericValue.toLocaleString()}`;
+          callback: function (this: Scale, tickValue: string | number): string {
+            const value = typeof tickValue === 'string' ? parseFloat(tickValue) : tickValue;
+            return `$${value.toLocaleString()}`;
           },
-          font: { size: 12 },
-          color: '#666',
+          font: { size: 8 },
         },
         grid: { color: 'rgba(0, 0, 0, 0.1)' },
       },
       x: {
         ticks: {
-          font: { size: 12 },
-          color: '#666',
+          font: { size: 8 },
           maxRotation: 45,
           minRotation: 45,
         },
@@ -358,24 +321,23 @@ const SalesDashboard: React.FC = () => {
       legend: { display: false },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleFont: { size: 14 },
-        bodyFont: { size: 12 },
-        padding: 10,
+        titleFont: { size: 10 },
+        bodyFont: { size: 8 },
+        padding: 6,
         callbacks: {
-          label: (context: any) => `${context.label}: $${context.raw.toFixed(2)}`,
+          label: (context: TooltipItem<'bar'>): string => {
+            const value = context.raw as number;
+            return `${context.label}: $${value.toFixed(2)}`;
+          },
         },
       },
       title: {
         display: true,
         text: 'Sales by Salesperson',
-        font: { size: 16 },
-        padding: { top: 10, bottom: 20 },
+        font: { size: 12 },
+        padding: { top: 5, bottom: 5 },
         color: '#333',
       },
-    },
-    animation: {
-      duration: 1500,
-      easing: 'easeOutBounce' as const,
     },
   };
 
@@ -383,9 +345,7 @@ const SalesDashboard: React.FC = () => {
     e.preventDefault();
     try {
       const token = Cookies.get('token');
-      const response = await axios.post(`${API_URL}/api/stock`, stockForm, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.post(`${API_URL}/api/stock`, stockForm, { headers: { Authorization: `Bearer ${token}` } });
       setStockItems([...stockItems, response.data]);
       setStockForm({ item: '', quantity: 0, pricePerCarton: 0, stemAmount: 2, totalPlantAmount: 500, weeklyCapacity: 0 });
     } catch (error) {
@@ -398,9 +358,7 @@ const SalesDashboard: React.FC = () => {
     e.preventDefault();
     try {
       const token = Cookies.get('token');
-      const response = await axios.post(`${API_URL}/api/fee`, feeForm, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.post(`${API_URL}/api/fee`, feeForm, { headers: { Authorization: `Bearer ${token}` } });
       if (response.status === 201) {
         setFeeForm({ deliveryFee: 0, taxRate: 0 });
         setFees(response.data.fee);
@@ -417,14 +375,10 @@ const SalesDashboard: React.FC = () => {
       const token = Cookies.get('token');
       const total = totalSales;
       const orderPayload = { ...orderForm, total };
-      const response = await axios.post(`${API_URL}/api/orders`, orderPayload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.post(`${API_URL}/api/orders`, orderPayload, { headers: { Authorization: `Bearer ${token}` } });
       if (response.status === 200) {
         setOrderForm({ userId: '', items: [], address: '', paymentMethod: 'card' });
-        const salesResponse = await axios.get(`${API_URL}/api/sales-reports?timeframe=${timeFilter}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const salesResponse = await axios.get(`${API_URL}/api/sales-reports?timeframe=${timeFilter}`, { headers: { Authorization: `Bearer ${token}` } });
         const report = salesResponse.data.recentReport || salesResponse.data.savedReports?.[0];
         setSalesReport(report);
       }
@@ -436,30 +390,36 @@ const SalesDashboard: React.FC = () => {
 
   if (loading) return <Loading />;
   if (error) return (
-    <div className="p-6 text-center text-red-500">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="p-4 text-center text-red-500"
+    >
       {error}
-      <button
-        onClick={() => setLoading(true)}
-        className="ml-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      >
+      <button onClick={() => setLoading(true)} className="ml-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
         Retry
       </button>
-    </div>
+    </motion.div>
   );
 
   return (
-    <div className="p-0 sm:p-0 bg-gray-100 min-h-screen overflow-x-hidden">
-      <div className="max-w-7xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Sales Dashboard</h1>
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <button className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 w-full sm:w-auto">
-              <FaDownload className="mr-2" /> Export
+    <div className="w-full min-h-screen bg-gray-50 overflow-x-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="max-w-6xl mx-auto p-2 sm:p-4 w-full"
+      >
+        <div className="flex flex-col items-center mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-2 sm:mb-0">Sales Dashboard</h1>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+            <button className="flex items-center justify-center px-3 py-1 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 w-full sm:w-auto text-sm sm:text-base">
+              <FaDownload className="mr-1 sm:mr-2" /> Export
             </button>
             <select
               value={timeFilter}
               onChange={(e) => setTimeFilter(e.target.value)}
-              className="px-4 py-2 rounded-lg border w-full sm:w-auto"
+              className="px-3 py-1 sm:px-4 sm:py-2 rounded-lg border w-full sm:w-auto text-sm sm:text-base"
             >
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
@@ -468,77 +428,87 @@ const SalesDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-xl shadow-lg">
-            <h3 className="text-sm font-medium text-gray-500">Actual Sales</h3>
-            <p className="text-xl font-bold text-gray-800">${(salesReport.actualSales || 0).toLocaleString()}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg">
-            <h3 className="text-sm font-medium text-gray-500">Predicted Sales</h3>
-            <p className="text-xl font-bold text-gray-800">${(salesReport.predictedSales || 0).toLocaleString()}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg">
-            <h3 className="text-sm font-medium text-gray-500">Ideal Sales</h3>
-            <p className="text-xl font-bold text-gray-800">${(salesReport.idealSales || 0).toLocaleString()}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-lg">
-            <h3 className="text-sm font-medium text-gray-500">Total Sales (Orders)</h3>
-            <p className="text-xl font-bold text-gray-800">${totalSales.toLocaleString()}</p>
-          </div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 sm:mb-6"
+        >
+          {[
+            { title: 'Actual Sales', value: salesReport.actualSales },
+            { title: 'Predicted Sales', value: salesReport.predictedSales },
+            { title: 'Ideal Sales', value: salesReport.idealSales },
+            { title: 'Total Sales (Orders)', value: totalSales },
+          ].map((stat, index) => (
+            <div key={index} className="bg-white p-3 sm:p-4 rounded-xl shadow-lg">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-500">{stat.title}</h3>
+              <p className="text-base sm:text-lg md:text-xl font-bold text-gray-800">${(stat.value || 0).toLocaleString()}</p>
+            </div>
+          ))}
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-full">
-            <h2 className="text-lg sm:text-xl font-semibold mb-4">Sales Comparison</h2>
-            <div className="relative" style={{ height: '15rem' }}>
-              <Bar data={salesComparisonData} options={chartOptions} />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg md:col-span-2 w-full">
-            <h2 className="text-lg sm:text-xl font-semibold mb-4">Sales Trend</h2>
-            <div className="relative" style={{ height: '15rem' }}>
-              <Line data={salesTrendData} options={chartOptions} />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg w-full">
-            <div className="relative" style={{ height: '15rem' }}>
-              <Pie data={salesByRegionData} options={pieChartOptions} />
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg md:col-span-2 w-full">
-            <div className="relative" style={{ height: '15rem' }}>
-              <Bar data={salesBySalespersonData} options={enhancedBarChartOptions} />
-            </div>
-          </div>
-        </div>
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 mb-4 sm:mb-6">
+  {[
+    { title: 'Sales Comparison', Component: Bar, data: salesComparisonData, options: chartOptions },
+    { title: 'Sales Trend', Component: Line, data: salesTrendData, options: chartOptions },
+    { title: 'Sales by Region', Component: Pie, data: salesByRegionData, options: pieChartOptions },
+    { title: 'Sales by Salesperson', Component: Bar, data: salesBySalespersonData, options: enhancedBarChartOptions },
+  ].map((chart, index) => (
+    <motion.div
+      key={chart.title}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.1, duration: 0.5, ease: 'easeOut' }}
+      className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-lg w-full"
+    >
+      <h2 className="text-sm sm:text-base md:text-lg font-semibold mb-2 sm:mb-4">{chart.title}</h2>
+      <div className="relative h-40 sm:h-48 md:h-60 w-full">
+        {chart.Component === Bar && (
+          <Bar data={chart.data} options={chart.options as ChartOptions<'bar'>} />
+        )}
+        {chart.Component === Line && (
+          <Line data={chart.data} options={chart.options as ChartOptions<'line'>} />
+        )}
+        {chart.Component === Pie && (
+          <Pie data={chart.data} options={chart.options as ChartOptions<'pie'>} />
+        )}
+      </div>
+    </motion.div>
+  ))}
+</div>
 
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 w-full">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-lg mb-4 sm:mb-6 w-full"
+        >
+          <h2 className="text-sm sm:text-base md:text-lg font-semibold mb-2 sm:mb-4 flex items-center">
             <FaShoppingCart className="mr-2" /> Manage Orders
           </h2>
           {orders.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left text-xs sm:text-sm">
                 <thead>
                   <tr className="bg-gray-200">
-                    <th className="p-2">Order ID</th>
-                    <th className="p-2">User</th>
-                    <th className="p-2">Total</th>
-                    <th className="p-2">Status</th>
-                    <th className="p-2">Delivery Status</th>
+                    <th className="p-1 sm:p-2">Order ID</th>
+                    <th className="p-1 sm:p-2">User</th>
+                    <th className="p-1 sm:p-2">Total</th>
+                    <th className="p-1 sm:p-2">Status</th>
+                    <th className="p-1 sm:p-2">Delivery</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order._id} className="border-b">
-                      <td className="p-2">{order._id}</td>
-                      <td className="p-2">{users.find((u) => u._id === order.user)?.name || 'Unknown'}</td>
-                      <td className="p-2">${order.total.toLocaleString()}</td>
-                      <td className="p-2">
+                      <td className="p-1 sm:p-2 truncate max-w-[80px] sm:max-w-[100px]">{order._id}</td>
+                      <td className="p-1 sm:p-2 truncate max-w-[80px] sm:max-w-[100px]">{users.find((u) => u._id === order.user)?.name || 'Unknown'}</td>
+                      <td className="p-1 sm:p-2">${order.total.toLocaleString()}</td>
+                      <td className="p-1 sm:p-2">
                         <select
                           value={order.status}
-                          onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value, undefined)}
-                          className="p-1 border rounded"
+                          onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value)}
+                          className="p-1 border rounded w-full text-xs sm:text-sm"
                         >
                           <option value="pending">Pending</option>
                           <option value="paid">Paid</option>
@@ -547,11 +517,11 @@ const SalesDashboard: React.FC = () => {
                           <option value="canceled">Canceled</option>
                         </select>
                       </td>
-                      <td className="p-2">
+                      <td className="p-1 sm:p-2">
                         <select
                           value={order.deliveryStatus}
                           onChange={(e) => handleUpdateOrderStatus(order._id, undefined, e.target.value)}
-                          className="p-1 border rounded"
+                          className="p-1 border rounded w-full text-xs sm:text-sm"
                         >
                           <option value="pending">Pending</option>
                           <option value="shipped">Shipped</option>
@@ -565,86 +535,62 @@ const SalesDashboard: React.FC = () => {
               </table>
             </div>
           ) : (
-            <p>No orders available.</p>
+            <p className="text-xs sm:text-sm">No orders available.</p>
           )}
-        </div>
+        </motion.div>
 
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 w-full">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-lg mb-4 sm:mb-6 w-full"
+        >
+          <h2 className="text-sm sm:text-base md:text-lg font-semibold mb-2 sm:mb-4 flex items-center">
             <FaPlus className="mr-2" /> Create Stock
           </h2>
-          <form onSubmit={handleCreateStock} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <input
-              type="text"
-              placeholder="Enter item name"
-              value={stockForm.item}
-              onChange={(e) => setStockForm({ ...stockForm, item: e.target.value })}
-              className="p-2 border rounded w-full"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Enter quantity"
-              value={stockForm.quantity || ''}
-              onChange={(e) => setStockForm({ ...stockForm, quantity: Number(e.target.value) })}
-              className="p-2 border rounded w-full"
-              min="0"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Enter price per carton"
-              value={stockForm.pricePerCarton || ''}
-              onChange={(e) => setStockForm({ ...stockForm, pricePerCarton: Number(e.target.value) })}
-              className="p-2 border rounded w-full"
-              min="0"
-              step="0.01"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Enter stem amount"
-              value={stockForm.stemAmount}
-              onChange={(e) => setStockForm({ ...stockForm, stemAmount: Number(e.target.value) })}
-              className="p-2 border rounded w-full"
-              min="1"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Enter total plant amount"
-              value={stockForm.totalPlantAmount}
-              onChange={(e) => setStockForm({ ...stockForm, totalPlantAmount: Number(e.target.value) })}
-              className="p-2 border rounded w-full"
-              min="1"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Enter weekly capacity"
-              value={stockForm.weeklyCapacity || ''}
-              onChange={(e) => setStockForm({ ...stockForm, weeklyCapacity: Number(e.target.value) })}
-              className="p-2 border rounded w-full"
-              min="0"
-              required
-            />
-            <button type="submit" className="col-span-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full">
+          <form onSubmit={handleCreateStock} className="grid grid-cols-1 gap-2 sm:gap-4">
+            {[
+              { placeholder: 'Enter item name', value: stockForm.item, onChange: (e: any) => setStockForm({ ...stockForm, item: e.target.value }) },
+              { placeholder: 'Enter quantity', value: stockForm.quantity, onChange: (e: any) => setStockForm({ ...stockForm, quantity: Number(e.target.value) }), type: 'number', min: 0 },
+              { placeholder: 'Enter price per carton', value: stockForm.pricePerCarton, onChange: (e: any) => setStockForm({ ...stockForm, pricePerCarton: Number(e.target.value) }), type: 'number', min: 0, step: '0.01' },
+              { placeholder: 'Enter stem amount', value: stockForm.stemAmount, onChange: (e: any) => setStockForm({ ...stockForm, stemAmount: Number(e.target.value) }), type: 'number', min: 1 },
+              { placeholder: 'Enter total plant amount', value: stockForm.totalPlantAmount, onChange: (e: any) => setStockForm({ ...stockForm, totalPlantAmount: Number(e.target.value) }), type: 'number', min: 1 },
+              { placeholder: 'Enter weekly capacity', value: stockForm.weeklyCapacity, onChange: (e: any) => setStockForm({ ...stockForm, weeklyCapacity: Number(e.target.value) }), type: 'number', min: 0 },
+            ].map((field, index) => (
+              <input
+                key={index}
+                type={field.type || 'text'}
+                placeholder={field.placeholder}
+                value={field.value || ''}
+                onChange={field.onChange}
+                className="p-1 sm:p-2 border rounded w-full text-xs sm:text-sm"
+                min={field.min}
+                step={field.step}
+                required
+              />
+            ))}
+            <button type="submit" className="px-3 py-1 sm:px-4 sm:py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full text-sm sm:text-base">
               Create Stock
             </button>
           </form>
-        </div>
+        </motion.div>
 
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 w-full">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-lg mb-4 sm:mb-6 w-full"
+        >
+          <h2 className="text-sm sm:text-base md:text-lg font-semibold mb-2 sm:mb-4 flex items-center">
             <FaMoneyBill className="mr-2" /> Create Fee
           </h2>
-          <form onSubmit={handleCreateFee} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleCreateFee} className="grid grid-cols-1 gap-2 sm:gap-4">
             <input
               type="number"
               placeholder="Enter delivery fee"
               value={feeForm.deliveryFee || ''}
               onChange={(e) => setFeeForm({ ...feeForm, deliveryFee: Number(e.target.value) })}
-              className="p-2 border rounded w-full"
+              className="p-1 sm:p-2 border rounded w-full text-xs sm:text-sm"
               min="0"
               step="0.01"
               required
@@ -654,28 +600,33 @@ const SalesDashboard: React.FC = () => {
               placeholder="Enter tax rate (%)"
               value={feeForm.taxRate || ''}
               onChange={(e) => setFeeForm({ ...feeForm, taxRate: Number(e.target.value) })}
-              className="p-2 border rounded w-full"
+              className="p-1 sm:p-2 border rounded w-full text-xs sm:text-sm"
               min="0"
               max="100"
               step="0.01"
               required
             />
-            <button type="submit" className="col-span-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full">
+            <button type="submit" className="px-3 py-1 sm:px-4 sm:py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full text-sm sm:text-base">
               Create Fee
             </button>
           </form>
-        </div>
+        </motion.div>
 
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 w-full">
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-lg mb-4 sm:mb-6 w-full"
+        >
+          <h2 className="text-sm sm:text-base md:text-lg font-semibold mb-2 sm:mb-4 flex items-center">
             <FaShoppingCart className="mr-2" /> Create Customer Order
           </h2>
-          <form onSubmit={handleCreateOrder} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleCreateOrder} className="space-y-2 sm:space-y-4">
+            <div className="grid grid-cols-1 gap-2 sm:gap-4">
               <select
                 value={orderForm.userId}
                 onChange={(e) => setOrderForm({ ...orderForm, userId: e.target.value })}
-                className="p-2 border rounded w-full"
+                className="p-1 sm:p-2 border rounded w-full text-xs sm:text-sm"
                 required
               >
                 <option value="">Select Customer</option>
@@ -686,7 +637,7 @@ const SalesDashboard: React.FC = () => {
               <select
                 value={orderForm.paymentMethod}
                 onChange={(e) => setOrderForm({ ...orderForm, paymentMethod: e.target.value as 'card' | 'transfer' })}
-                className="p-2 border rounded w-full"
+                className="p-1 sm:p-2 border rounded w-full text-xs sm:text-sm"
                 required
               >
                 <option value="card">Card</option>
@@ -697,15 +648,15 @@ const SalesDashboard: React.FC = () => {
                 placeholder="Enter delivery address"
                 value={orderForm.address}
                 onChange={(e) => setOrderForm({ ...orderForm, address: e.target.value })}
-                className="p-2 border rounded sm:col-span-2 w-full"
+                className="p-1 sm:p-2 border rounded w-full text-xs sm:text-sm"
                 required
               />
             </div>
             <div>
-              <h3 className="font-medium mb-2">Add Items</h3>
+              <h3 className="font-medium mb-1 sm:mb-2 text-xs sm:text-sm">Add Items</h3>
               {latestStock ? (
-                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 mb-2">
-                  <span className="flex-1">
+                <div className="flex flex-col space-y-2">
+                  <span className="text-xs sm:text-sm truncate">
                     {latestStock.item} (Price: ${latestStock.pricePerCarton.toFixed(2)})
                   </span>
                   <input
@@ -717,39 +668,37 @@ const SalesDashboard: React.FC = () => {
                       const qty = Number(e.target.value);
                       setOrderForm(prev => ({
                         ...prev,
-                        items: qty > 0
-                          ? [{ itemId: latestStock._id, quantity: qty, pricePerCarton: latestStock.pricePerCarton }]
-                          : [],
+                        items: qty > 0 ? [{ itemId: latestStock._id, quantity: qty, pricePerCarton: latestStock.pricePerCarton }] : [],
                       }));
                     }}
-                    className="p-2 border rounded w-full sm:w-20"
+                    className="p-1 sm:p-2 border rounded w-full text-xs sm:text-sm"
                     required
                   />
                 </div>
               ) : (
-                <p>No stock items available.</p>
+                <p className="text-xs sm:text-sm">No stock items available.</p>
               )}
             </div>
-            <div className="mt-4">
-              <p className="text-lg font-semibold">
+            <div className="mt-2 sm:mt-4">
+              <p className="text-sm sm:text-base font-semibold">
                 Subtotal: ${(orderForm.items[0]?.quantity * latestStock?.pricePerCarton || 0).toFixed(2)}
               </p>
               {fees && (
                 <>
-                  <p className="text-sm text-gray-600">Delivery Fee: ${fees.deliveryFee.toFixed(2)}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs text-gray-600">Delivery Fee: ${fees.deliveryFee.toFixed(2)}</p>
+                  <p className="text-xs text-gray-600">
                     Tax ({fees.taxRate}%): ${((orderForm.items[0]?.quantity * latestStock?.pricePerCarton || 0) * (fees.taxRate / 100)).toFixed(2)}
                   </p>
                 </>
               )}
-              <p className="text-lg font-semibold">Total Sales: ${totalSales.toFixed(2)}</p>
+              <p className="text-sm sm:text-base font-semibold">Total Sales: ${totalSales.toFixed(2)}</p>
             </div>
-            <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full sm:w-auto">
+            <button type="submit" className="px-3 py-1 sm:px-4 sm:py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-full text-sm sm:text-base">
               Place Order
             </button>
           </form>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };
