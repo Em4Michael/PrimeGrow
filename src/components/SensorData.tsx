@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTemperatureHigh, faTint, faFire, faCloudRain, faSun, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { motion } from 'framer-motion';
@@ -28,8 +28,11 @@ const SensorData: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
-  const connectWebSocket = () => {
-    const socket = new WebSocket('ws://192.168.0.3:5000/');
+  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://your-backend-server.com';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-server.com';
+
+  const connectWebSocket = useCallback(() => {
+    const socket = new WebSocket(WS_URL);
     socket.onopen = () => {
       console.log('WebSocket connection established');
       setIsConnected(true);
@@ -60,9 +63,9 @@ const SensorData: React.FC = () => {
       resetSensorsToZero();
     };
     return socket;
-  };
+  }, [WS_URL]);
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async () => {
     const token = Cookies.get('token');
     if (!token) {
       console.log('No authentication token found');
@@ -70,7 +73,7 @@ const SensorData: React.FC = () => {
       return;
     }
     try {
-      const response = await axios.get('http://localhost:5000/api/sensor-data/latest', {
+      const response = await axios.get(`${API_URL}/api/sensor-data/latest`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       updateSensorsFromData(response.data);
@@ -81,13 +84,13 @@ const SensorData: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL]);
 
   useEffect(() => {
     fetchInitialData();
     const socket = connectWebSocket();
     return () => socket.close();
-  }, []);
+  }, [connectWebSocket, fetchInitialData]);
 
   const updateSensorsFromData = (data: any) => {
     setSensors((prevSensors) =>
@@ -114,6 +117,7 @@ const SensorData: React.FC = () => {
     fetchInitialData();
   };
 
+  // ... rest of the component (JSX remains unchanged)
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <motion.div
@@ -164,7 +168,7 @@ const SensorData: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sensors.map((sensor, index) => {
-            const valueString = sensor.value.toFixed(1); // Changed to 1 decimal place
+            const valueString = sensor.value.toFixed(1);
 
             return (
               <motion.div

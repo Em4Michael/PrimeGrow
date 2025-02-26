@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
 interface AttendanceRecord {
-  _id?: string; // Added MongoDB document ID
+  _id?: string;
   Date: string;
   Time: string;
   Access: string | null;
@@ -22,13 +22,42 @@ const WorkersAttendance: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [page, setPage] = useState(1); // Added pagination
+  const [page, setPage] = useState(1);
   const recordsPerPage = 20;
 
-  useEffect(() => {
-    fetchAttendanceData();
+  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://your-backend-server.com';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-server.com';
 
-    const socket = new WebSocket('ws://192.168.0.3:5000/');
+  const fetchAttendanceData = useCallback(async () => {
+    const token = Cookies.get('token');
+    if (!token) {
+      setError('No authentication token found');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/api/attendance`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { limit: 1000 },
+      });
+
+      const data = response.data.map((record: any) => ({
+        ...record,
+        timestamp: record.timestamp || new Date().toISOString(),
+      }));
+      setAttendanceData(data);
+      applyFiltersAndSort(data);
+    } catch (err: any) {
+      setError(`Failed to fetch attendance data: ${err.response?.statusText || err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [API_URL]);
+
+  const connectWebSocket = useCallback(() => {
+    const socket = new WebSocket(WS_URL);
     socket.onopen = () => console.log('WebSocket connected for attendance');
     socket.onmessage = (event) => {
       try {
@@ -53,42 +82,18 @@ const WorkersAttendance: React.FC = () => {
     };
     socket.onclose = () => console.log('WebSocket disconnected');
     socket.onerror = (err) => console.error('WebSocket error:', err);
+    return socket;
+  }, [WS_URL]);
 
+  useEffect(() => {
+    fetchAttendanceData();
+    const socket = connectWebSocket();
     return () => socket.close();
-  }, []);
-
-  const fetchAttendanceData = async () => {
-    const token = Cookies.get('token');
-    if (!token) {
-      setError('No authentication token found');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/attendance', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 1000 }, // Fetch more records initially
-      });
-
-      const data = response.data.map((record: any) => ({
-        ...record,
-        timestamp: record.timestamp || new Date().toISOString(), // Ensure timestamp exists
-      }));
-      setAttendanceData(data);
-      applyFiltersAndSort(data);
-    } catch (err: any) {
-      setError(`Failed to fetch attendance data: ${err.response?.statusText || err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchAttendanceData, connectWebSocket]);
 
   const applyFiltersAndSort = (data: AttendanceRecord[]) => {
     let result = [...data];
 
-    // Date Range Filter
     if (startDate || endDate) {
       result = result.filter((record) => {
         const recordDate = new Date(record.timestamp);
@@ -102,7 +107,6 @@ const WorkersAttendance: React.FC = () => {
       });
     }
 
-    // Sorting
     result.sort((a, b) => {
       const aValue = a[sortField];
       const bValue = b[sortField];
@@ -134,8 +138,9 @@ const WorkersAttendance: React.FC = () => {
 
   useEffect(() => {
     applyFiltersAndSort(attendanceData);
-  }, [startDate, endDate, page]);
+  }, [startDate, endDate, page, attendanceData]);
 
+  // ... rest of the component (JSX remains unchanged)
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaDoorClosed, FaSprayCan, FaFan, FaLightbulb, FaWater } from 'react-icons/fa';
 import { MdOutlineWindow } from 'react-icons/md';
 import { motion } from 'framer-motion';
@@ -31,8 +31,11 @@ const InstrumentControl: React.FC = () => {
     { label: 'Pump', stateKey: 'E_Pump' as ToggleKey, icon: <FaWater className="text-3xl" /> },
   ];
 
-  const connectWebSocket = () => {
-    const socket = new WebSocket('ws://192.168.0.3:5000/');
+  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://your-backend-server.com'; // Replace with your hosted WebSocket URL
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-server.com'; // Replace with your hosted API URL
+
+  const connectWebSocket = useCallback(() => {
+    const socket = new WebSocket(WS_URL);
 
     socket.onopen = () => {
       console.log('WebSocket connection established');
@@ -70,9 +73,9 @@ const InstrumentControl: React.FC = () => {
     };
 
     return socket;
-  };
+  }, [WS_URL]);
 
-  const fetchInitialStates = async () => {
+  const fetchInitialStates = useCallback(async () => {
     const token = Cookies.get('token');
     if (!token) {
       console.log('No authentication token found');
@@ -81,7 +84,7 @@ const InstrumentControl: React.FC = () => {
 
     try {
       const promises = instruments.map(async (instrument) => {
-        const response = await axios.get(`http://localhost:5000/api/pin-state/${instrument.stateKey}`, {
+        const response = await axios.get(`${API_URL}/api/pin-state/${instrument.stateKey}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         return { key: instrument.stateKey, state: response.data.state === 'on' };
@@ -93,13 +96,13 @@ const InstrumentControl: React.FC = () => {
       console.error('Error fetching initial pin states:', err.response?.data || err.message);
       setError(`Failed to load initial states: ${err.response?.statusText || err.message}`);
     }
-  };
+  }, [API_URL]);
 
   useEffect(() => {
     fetchInitialStates();
     const socket = connectWebSocket();
     return () => socket.close();
-  }, []);
+  }, [connectWebSocket, fetchInitialStates]);
 
   const handleToggle = async (key: ToggleKey) => {
     if (!isConnected) {
@@ -108,7 +111,7 @@ const InstrumentControl: React.FC = () => {
     }
 
     const newState = !toggleStates[key];
-    const socket = new WebSocket('ws://192.168.0.3:5000/');
+    const socket = new WebSocket(WS_URL);
     socket.onopen = () => {
       socket.send(JSON.stringify({ type: 'toggle', pinName: key }));
       setToggleStates((prev) => ({ ...prev, [key]: newState }));
@@ -117,7 +120,7 @@ const InstrumentControl: React.FC = () => {
       const token = Cookies.get('token');
       if (token) {
         axios.post(
-          'http://localhost:5000/api/toggle',
+          `${API_URL}/api/toggle`,
           { pinName: key, state: newState ? 'on' : 'off' },
           { headers: { Authorization: `Bearer ${token}` } }
         ).catch((err) => console.error('Error syncing pin state:', err));
@@ -125,6 +128,7 @@ const InstrumentControl: React.FC = () => {
     };
   };
 
+  // ... rest of the component (JSX remains unchanged)
   return (
     <div className="p-0 w-full min-h-screen overflow-x-hidden bg-gray-50">
       <motion.div
@@ -213,4 +217,4 @@ const InstrumentControl: React.FC = () => {
   );
 };
 
-export default InstrumentControl;
+export default InstrumentControl; 
