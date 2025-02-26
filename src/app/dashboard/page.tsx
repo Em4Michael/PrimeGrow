@@ -1,4 +1,3 @@
-// Dashboard.tsx
 'use client';
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/SideBar';
@@ -9,12 +8,12 @@ import SalesDashboard from '../../components/SalesDashboard';
 import InstrumentControl from '../../components/InstrumentControl';
 import Alert from '../../components/Alert';
 import Notification from '../../components/NotificationProps';
-import WorkersAttendance from '../../components/WorkersAttendance'; // New component
+import WorkersAttendance from '../../components/WorkersAttendance';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 
 const Dashboard: React.FC = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Default to true, adjusted on client
   const [activeComponent, setActiveComponent] = useState('default');
   const { user } = useAuth();
   const router = useRouter();
@@ -29,12 +28,15 @@ const Dashboard: React.FC = () => {
   }, [user, router]);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsSidebarOpen(window.innerWidth >= 768);
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
+    // Only run this effect on the client
+    if (typeof window !== 'undefined') {
+      const handleResize = () => {
+        setIsSidebarOpen(window.innerWidth >= 768);
+      };
+      window.addEventListener('resize', handleResize);
+      handleResize(); // Initial call after confirming client-side
+      return () => window.removeEventListener('resize', handleResize);
+    }
   }, []);
 
   const renderComponent = () => {
@@ -85,7 +87,7 @@ const Dashboard: React.FC = () => {
         <main
           className="flex-1 overflow-y-auto p-2 transition-all duration-300"
           style={{
-            marginLeft: isSidebarOpen && window.innerWidth >= 768 ? '16rem' : '3rem',
+            marginLeft: isSidebarOpen && typeof window !== 'undefined' && window.innerWidth >= 768 ? '16rem' : '3rem',
             marginTop: '4rem',
           }}
         >
