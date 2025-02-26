@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useRouter } from 'next/navigation';
-import Logo from '../../components/logo';
+import Logo from '../../components/Logo';
 import Loading from '../../components/Loading';
 import Notification from '../../components/Notification';
 import axios from 'axios';
@@ -24,9 +24,9 @@ const VerifyPhoneNumber = () => {
     message: string;
   } | null>(null);
 
-  const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]); // Explicitly typed as array
   const router = useRouter();
-  const { user, verifyOtpPass } = useAuth(); // Access the authenticated user
+  const { user, verifyOtpPass } = useAuth();
 
   useEffect(() => {
     if (timeRemaining > 0) {
@@ -66,14 +66,14 @@ const VerifyPhoneNumber = () => {
     const otpCode = otp.join('');
 
     try {
-      const isVerified = await verifyOtpPass(otpCode); // Use verifyOtp from context
+      const isVerified = await verifyOtpPass(otpCode);
 
       if (isVerified) {
         setNotification({
           type: 'success',
           message: 'Password reset successfully!',
         });
-        router.push('/login'); // Navigate to login page after success
+        router.push('/login');
       } else {
         setNotification({
           type: 'error',
@@ -90,7 +90,6 @@ const VerifyPhoneNumber = () => {
       setIsLoading(false);
     }
   };
-
 
   const handleResend = async () => {
     try {
@@ -117,21 +116,23 @@ const VerifyPhoneNumber = () => {
   };
 
   return (
-    <div className='flex-1 mt-[100px] p-2 sm:p-2 flex flex-col justify-center gap-20 overflow-hidden'>
+    <div className="flex-1 mt-[100px] p-2 sm:p-2 flex flex-col justify-center gap-20 overflow-hidden">
       <Logo />
-      <div className='flex flex-col items-center gap-10'>
-        <div className='text-center text-gray-900 text-2xl font-bold'>
+      <div className="flex flex-col items-center gap-10">
+        <div className="text-center text-gray-900 text-2xl font-bold">
           Verify Your Phone Number
         </div>
-        <div className='text-center text-gray-500 text-base'>
+        <div className="text-center text-gray-500 text-base">
           Enter the authentication code we sent to your phone number.
         </div>
-        <div className='flex justify-center items-center gap-2 md:gap-4 max-w-lg'>
+        <div className="flex justify-center items-center gap-2 md:gap-4 max-w-lg">
           {[...Array(6)].map((_, index) => (
             <Input
               key={index}
-              ref={(el) => (inputsRef.current[index] = el)}
-              type='text'
+              ref={(el) => {
+                inputsRef.current[index] = el; // Void return
+              }}
+              type="text"
               maxLength={1}
               value={otp[index]}
               className={`bg-white text-center w-10 h-10 md:w-10 md:h-12 border ${
@@ -142,12 +143,12 @@ const VerifyPhoneNumber = () => {
           ))}
         </div>
         {errorMessage && (
-          <div className='text-center'>
-            <p className='text-red-600 text-sm'>{errorMessage}</p>
+          <div className="text-center">
+            <p className="text-red-600 text-sm">{errorMessage}</p>
           </div>
         )}
         <Button
-          type='button'
+          type="button"
           className={`w-full py-3 mt-4 ${
             isButtonDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600'
           } text-white text-base font-semibold rounded-lg max-w-lg`}
@@ -160,8 +161,8 @@ const VerifyPhoneNumber = () => {
               : `Request Again in ${formatTime(timeRemaining)}`
             : 'Verify Code'}
         </Button>
-        <div className='w-full text-center mt-4'>
-          <span className='text-gray-500 text-sm'>
+        <div className="w-full text-center mt-4">
+          <span className="text-gray-500 text-sm">
             Didn’t receive the code?
           </span>
           <span
