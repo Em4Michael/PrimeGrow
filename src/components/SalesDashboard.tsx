@@ -14,7 +14,7 @@ import {
   ArcElement,
 } from 'chart.js';
 import { FaShoppingCart, FaChartLine, FaDownload, FaPlus, FaMoneyBill } from 'react-icons/fa';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios'; // Import AxiosError
 import Cookies from 'js-cookie';
 
 ChartJS.register(
@@ -63,7 +63,7 @@ const SalesDashboard: React.FC = () => {
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [fees, setFees] = useState<FeeFormData | null>({ deliveryFee: 0, taxRate: 0 });
-  const [orders, setOrders] = useState<any[]>([]); // New state for orders
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,12 +100,19 @@ const SalesDashboard: React.FC = () => {
         const feeResponse = await axios.get('http://localhost:5000/api/fee/recent', config);
         setFees(feeResponse.data || { deliveryFee: 0, taxRate: 0 });
 
-        // Fetch orders
-        const ordersResponse = await axios.get('http://localhost:5000/api/orders', config); // Assume this endpoint exists
+        const ordersResponse = await axios.get('http://localhost:5000/api/orders', config);
         setOrders(ordersResponse.data || []);
       } catch (error) {
-        console.error('Error fetching data:', error.response?.data || error.message);
-        setError(error.response?.data?.error || error.message || 'Failed to load dashboard data');
+        // Narrow the error type to AxiosError or Error
+        if (axios.isAxiosError(error)) {
+          const axiosError = error as AxiosError<{ error?: string }>;
+          console.error('Error fetching data:', axiosError.response?.data || axiosError.message);
+          setError(axiosError.response?.data?.error || axiosError.message || 'Failed to load dashboard data');
+        } else {
+          const genericError = error as Error;
+          console.error('Error fetching data:', genericError.message);
+          setError(genericError.message || 'Failed to load dashboard data');
+        }
         setSalesReport({ actualSales: 0, predictedSales: 0, idealSales: 0, usersByLocation: [], usersByName: [] });
         setStockItems([]);
         setUsers([]);
@@ -138,7 +145,7 @@ const SalesDashboard: React.FC = () => {
       setError('Failed to update order status');
     }
   };
-  
+
   const latestStock = useMemo(() => {
     return stockItems.length > 0 ? stockItems[stockItems.length - 1] : null;
   }, [stockItems]);
@@ -414,7 +421,6 @@ const SalesDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Sales Summary Card - 2 columns on small screens */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl shadow-lg">
             <h3 className="text-sm font-medium text-gray-500">Actual Sales</h3>
@@ -459,7 +465,6 @@ const SalesDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Orders Section */}
         <div className="bg-white p-6 rounded-xl shadow-lg mb-6 w-full">
           <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center">
             <FaShoppingCart className="mr-2" /> Manage Orders
