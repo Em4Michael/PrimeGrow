@@ -110,14 +110,20 @@ const WorkersAttendance: React.FC = () => {
     result.sort((a, b) => {
       const aValue = a[sortField];
       const bValue = b[sortField];
+
       if (sortField === 'timestamp') {
+        // Guard against null/undefined by providing a fallback
+        const aDate = aValue ? new Date(aValue) : new Date(0); // Fallback to epoch if invalid
+        const bDate = bValue ? new Date(bValue) : new Date(0);
         return sortOrder === 'asc'
-          ? new Date(aValue).getTime() - new Date(bValue).getTime()
-          : new Date(bValue).getTime() - new Date(aValue).getTime();
+          ? aDate.getTime() - bDate.getTime()
+          : bDate.getTime() - aDate.getTime();
       }
+
+      // Ensure string comparison handles null/undefined
       return sortOrder === 'asc'
-        ? String(aValue || '').localeCompare(String(bValue || ''))
-        : String(bValue || '').localeCompare(String(aValue || ''));
+        ? String(aValue ?? '').localeCompare(String(bValue ?? ''))
+        : String(bValue ?? '').localeCompare(String(aValue ?? ''));
     });
 
     setFilteredData(result);
@@ -140,7 +146,6 @@ const WorkersAttendance: React.FC = () => {
     applyFiltersAndSort(attendanceData);
   }, [startDate, endDate, page, attendanceData]);
 
-  // ... rest of the component (JSX remains unchanged)
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
