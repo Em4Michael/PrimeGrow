@@ -51,19 +51,16 @@ interface OrderFormData {
   paymentMethod: 'card' | 'transfer';
 }
 
-// Define the structure of a location entry in usersByLocation
 interface LocationSales {
   address: string;
   totalSales: number;
 }
 
-// Define the structure of a user entry in usersByName
 interface UserSales {
   name: string;
   totalSales: number;
 }
 
-// Define the structure of the sales report
 interface SalesReport {
   actualSales: number;
   predictedSales: number;
@@ -71,6 +68,8 @@ interface SalesReport {
   usersByLocation: LocationSales[];
   usersByName: UserSales[];
 }
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
 const SalesDashboard: React.FC = () => {
   const [salesReport, setSalesReport] = useState<SalesReport>({
@@ -121,7 +120,7 @@ const SalesDashboard: React.FC = () => {
 
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        const salesResponse = await axios.get(`http://localhost:5000/api/sales-reports?timeframe=${timeFilter}`, config);
+        const salesResponse = await axios.get(`${API_URL}/api/sales-reports?timeframe=${timeFilter}`, config);
         const report = salesResponse.data.recentReport || salesResponse.data.savedReports?.[0] || {
           actualSales: 0,
           predictedSales: 0,
@@ -131,16 +130,16 @@ const SalesDashboard: React.FC = () => {
         };
         setSalesReport(report);
 
-        const stockResponse = await axios.get('http://localhost:5000/api/stock', config);
+        const stockResponse = await axios.get(`${API_URL}/api/stock`, config);
         setStockItems(stockResponse.data || []);
 
-        const usersResponse = await axios.get('http://localhost:5000/api/users', config);
+        const usersResponse = await axios.get(`${API_URL}/api/users`, config);
         setUsers(usersResponse.data || []);
 
-        const feeResponse = await axios.get('http://localhost:5000/api/fee/recent', config);
+        const feeResponse = await axios.get(`${API_URL}/api/fee/recent`, config);
         setFees(feeResponse.data || { deliveryFee: 0, taxRate: 0 });
 
-        const ordersResponse = await axios.get('http://localhost:5000/api/orders', config);
+        const ordersResponse = await axios.get(`${API_URL}/api/orders`, config);
         setOrders(ordersResponse.data || []);
       } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -168,7 +167,7 @@ const SalesDashboard: React.FC = () => {
     try {
       const token = Cookies.get('token');
       const response = await axios.put(
-        'http://localhost:5000/api/order/status',
+        `${API_URL}/api/order/status`,
         { orderId, status, deliveryStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -281,7 +280,6 @@ const SalesDashboard: React.FC = () => {
         ticks: {
           stepSize: Math.ceil(maxSalesValue / 5000) * 1000,
           callback: (value: number | string, _index: number, _ticks: any[]) => {
-            // Since this is a LinearScale, value will be a number, but we type it as number | string to satisfy Chart.js
             const numericValue = typeof value === 'string' ? parseFloat(value) : value;
             return `$${numericValue.toLocaleString()}`;
           },
@@ -385,7 +383,7 @@ const SalesDashboard: React.FC = () => {
     e.preventDefault();
     try {
       const token = Cookies.get('token');
-      const response = await axios.post('http://localhost:5000/api/stock', stockForm, {
+      const response = await axios.post(`${API_URL}/api/stock`, stockForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setStockItems([...stockItems, response.data]);
@@ -400,7 +398,7 @@ const SalesDashboard: React.FC = () => {
     e.preventDefault();
     try {
       const token = Cookies.get('token');
-      const response = await axios.post('http://localhost:5000/api/fee', feeForm, {
+      const response = await axios.post(`${API_URL}/api/fee`, feeForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 201) {
@@ -419,12 +417,12 @@ const SalesDashboard: React.FC = () => {
       const token = Cookies.get('token');
       const total = totalSales;
       const orderPayload = { ...orderForm, total };
-      const response = await axios.post('http://localhost:5000/api/orders', orderPayload, {
+      const response = await axios.post(`${API_URL}/api/orders`, orderPayload, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.status === 200) {
         setOrderForm({ userId: '', items: [], address: '', paymentMethod: 'card' });
-        const salesResponse = await axios.get(`http://localhost:5000/api/sales-reports?timeframe=${timeFilter}`, {
+        const salesResponse = await axios.get(`${API_URL}/api/sales-reports?timeframe=${timeFilter}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const report = salesResponse.data.recentReport || salesResponse.data.savedReports?.[0];

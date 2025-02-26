@@ -25,8 +25,45 @@ const WorkersAttendance: React.FC = () => {
   const [page, setPage] = useState(1);
   const recordsPerPage = 20;
 
-  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://your-backend-server.com';
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-server.com';
+  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://primegrow-server.onrender.com';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
+
+  const applyFiltersAndSort = useCallback((data: AttendanceRecord[]) => {
+    let result = [...data];
+
+    if (startDate || endDate) {
+      result = result.filter((record) => {
+        const recordDate = new Date(record.timestamp);
+        const start = startDate ? new Date(startDate) : null;
+        const end = endDate ? new Date(endDate) : null;
+
+        if (start && end) return recordDate >= start && recordDate <= end;
+        if (start) return recordDate >= start;
+        if (end) return recordDate <= end;
+        return true;
+      });
+    }
+
+    result.sort((a, b) => {
+      const aValue = a[sortField];
+      const bValue = b[sortField];
+
+      if (sortField === 'timestamp') {
+        const aDate = aValue ? new Date(aValue) : new Date(0);
+        const bDate = bValue ? new Date(bValue) : new Date(0);
+        return sortOrder === 'asc'
+          ? aDate.getTime() - bDate.getTime()
+          : bDate.getTime() - aDate.getTime();
+      }
+
+      return sortOrder === 'asc'
+        ? String(aValue ?? '').localeCompare(String(bValue ?? ''))
+        : String(bValue ?? '').localeCompare(String(aValue ?? ''));
+    });
+
+    setFilteredData(result);
+    setDisplayData(result.slice((page - 1) * recordsPerPage, page * recordsPerPage));
+  }, [startDate, endDate, page, sortField, sortOrder]);
 
   const fetchAttendanceData = useCallback(async () => {
     const token = Cookies.get('token');
@@ -54,7 +91,7 @@ const WorkersAttendance: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL]);
+  }, [API_URL, applyFiltersAndSort]);
 
   const connectWebSocket = useCallback(() => {
     const socket = new WebSocket(WS_URL);
@@ -83,52 +120,13 @@ const WorkersAttendance: React.FC = () => {
     socket.onclose = () => console.log('WebSocket disconnected');
     socket.onerror = (err) => console.error('WebSocket error:', err);
     return socket;
-  }, [WS_URL]);
+  }, [WS_URL, applyFiltersAndSort]);
 
   useEffect(() => {
     fetchAttendanceData();
     const socket = connectWebSocket();
     return () => socket.close();
   }, [fetchAttendanceData, connectWebSocket]);
-
-  const applyFiltersAndSort = (data: AttendanceRecord[]) => {
-    let result = [...data];
-
-    if (startDate || endDate) {
-      result = result.filter((record) => {
-        const recordDate = new Date(record.timestamp);
-        const start = startDate ? new Date(startDate) : null;
-        const end = endDate ? new Date(endDate) : null;
-
-        if (start && end) return recordDate >= start && recordDate <= end;
-        if (start) return recordDate >= start;
-        if (end) return recordDate <= end;
-        return true;
-      });
-    }
-
-    result.sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-
-      if (sortField === 'timestamp') {
-        // Guard against null/undefined by providing a fallback
-        const aDate = aValue ? new Date(aValue) : new Date(0); // Fallback to epoch if invalid
-        const bDate = bValue ? new Date(bValue) : new Date(0);
-        return sortOrder === 'asc'
-          ? aDate.getTime() - bDate.getTime()
-          : bDate.getTime() - aDate.getTime();
-      }
-
-      // Ensure string comparison handles null/undefined
-      return sortOrder === 'asc'
-        ? String(aValue ?? '').localeCompare(String(bValue ?? ''))
-        : String(bValue ?? '').localeCompare(String(aValue ?? ''));
-    });
-
-    setFilteredData(result);
-    setDisplayData(result.slice((page - 1) * recordsPerPage, page * recordsPerPage));
-  };
 
   const handleSort = (field: keyof AttendanceRecord) => {
     const newOrder = sortField === field && sortOrder === 'asc' ? 'desc' : 'asc';
@@ -144,7 +142,7 @@ const WorkersAttendance: React.FC = () => {
 
   useEffect(() => {
     applyFiltersAndSort(attendanceData);
-  }, [startDate, endDate, page, attendanceData]);
+  }, [attendanceData, applyFiltersAndSort]);
 
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
@@ -170,7 +168,7 @@ const WorkersAttendance: React.FC = () => {
           <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-center">{error}</div>
         )}
 
-        <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="mb-6flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <input
               type="date"

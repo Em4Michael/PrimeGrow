@@ -2,12 +2,12 @@ import Footer from '../../components/Footer';
 import TopNavbar from '../../components/NavBarHome';
 import Product from '../../components/Product';
 import { Suspense } from 'react';
-
+import Loading from '../../components/Loading';
 const ProductPage: React.FC = () => { 
   return (
     <div>
       <TopNavbar />
-      <Suspense fallback={<div>Loading products...</div>}>
+      <Suspense fallback={<Loading />}>
         <Product />
       </Suspense>
       <Footer />

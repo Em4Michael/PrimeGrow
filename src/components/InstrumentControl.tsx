@@ -31,8 +31,8 @@ const InstrumentControl: React.FC = () => {
     { label: 'Pump', stateKey: 'E_Pump' as ToggleKey, icon: <FaWater className="text-3xl" /> },
   ];
 
-  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://your-backend-server.com'; // Replace with your hosted WebSocket URL
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-server.com'; // Replace with your hosted API URL
+  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://primegrow-server.onrender.com';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
   const connectWebSocket = useCallback(() => {
     const socket = new WebSocket(WS_URL);
@@ -96,7 +96,7 @@ const InstrumentControl: React.FC = () => {
       console.error('Error fetching initial pin states:', err.response?.data || err.message);
       setError(`Failed to load initial states: ${err.response?.statusText || err.message}`);
     }
-  }, [API_URL]);
+  }, [API_URL, instruments]);
 
   useEffect(() => {
     fetchInitialStates();
@@ -128,7 +128,6 @@ const InstrumentControl: React.FC = () => {
     };
   };
 
-  // ... rest of the component (JSX remains unchanged)
   return (
     <div className="p-0 w-full min-h-screen overflow-x-hidden bg-gray-50">
       <motion.div
@@ -217,4 +216,4 @@ const InstrumentControl: React.FC = () => {
   );
 };
 
-export default InstrumentControl; 
+export default InstrumentControl;

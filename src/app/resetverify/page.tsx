@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useRef, useEffect } from 'react';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
@@ -11,6 +10,7 @@ import axios from 'axios';
 import { useAuth } from '../../app/context/AuthContext';
 
 const initialTime = 120; // 2 minutes in seconds
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
 const VerifyPhoneNumber = () => {
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
@@ -24,9 +24,9 @@ const VerifyPhoneNumber = () => {
     message: string;
   } | null>(null);
 
-  const inputsRef = useRef<(HTMLInputElement | null)[]>([]); // Explicitly typed as array
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
-  const { user, verifyOtpPass } = useAuth();
+  const { verifyOtpPass } = useAuth();
 
   useEffect(() => {
     if (timeRemaining > 0) {
@@ -96,7 +96,7 @@ const VerifyPhoneNumber = () => {
       const storedData = localStorage.getItem('resetPasswordData');
       if (storedData) {
         const { phoneNumber } = JSON.parse(storedData);
-        await axios.post('http://localhost:5000/api/otp/send', { phoneNumber });
+        await axios.post(`${API_URL}/api/otp/send`, { phoneNumber });
         setTimeRemaining(initialTime);
         setShowResend(false);
         setNotification({
@@ -116,6 +116,7 @@ const VerifyPhoneNumber = () => {
   };
 
   return (
+    // JSX remains unchanged
     <div className="flex-1 mt-[100px] p-2 sm:p-2 flex flex-col justify-center gap-20 overflow-hidden">
       <Logo />
       <div className="flex flex-col items-center gap-10">
@@ -130,7 +131,7 @@ const VerifyPhoneNumber = () => {
             <Input
               key={index}
               ref={(el) => {
-                inputsRef.current[index] = el; // Void return
+                inputsRef.current[index] = el;
               }}
               type="text"
               maxLength={1}

@@ -14,6 +14,9 @@ interface Sensor {
   maxValue: number;
 }
 
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://primegrow-server.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
+
 const SensorData: React.FC = () => {
   const [sensors, setSensors] = useState<Sensor[]>([
     { name: 'Temperature', icon: faTemperatureHigh, value: 0, unit: '°C', color: 'red-600', maxValue: 100 },
@@ -27,9 +30,6 @@ const SensorData: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
-
-  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://your-backend-server.com';
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-server.com';
 
   const connectWebSocket = useCallback(() => {
     const socket = new WebSocket(WS_URL);
@@ -117,7 +117,6 @@ const SensorData: React.FC = () => {
     fetchInitialData();
   };
 
-  // ... rest of the component (JSX remains unchanged)
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <motion.div
@@ -129,6 +128,7 @@ const SensorData: React.FC = () => {
   );
 
   return (
+    // JSX remains unchanged
     <div className="p-0 w-full min-h-screen overflow-x-hidden bg-gray-50">
       <motion.div
         initial={{ opacity: 0, y: -20 }}

@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useRef, useEffect } from 'react';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
@@ -8,9 +7,9 @@ import Logo from '../../components/logo';
 import Loading from '../../components/Loading';
 import Notification from '../../components/Notification';
 import axios from 'axios';
-import { useAuth } from '../../app/context/AuthContext';
 
 const initialTime = 120; // 2 minutes in seconds
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
 const VerifyPhoneNumber = () => {
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
@@ -24,9 +23,8 @@ const VerifyPhoneNumber = () => {
     message: string;
   } | null>(null);
 
-  const inputsRef = useRef<(HTMLInputElement | null)[]>([]); // Properly typed array
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
   const router = useRouter();
-  const { user } = useAuth(); // Access the authenticated user
 
   useEffect(() => {
     if (timeRemaining > 0) {
@@ -71,15 +69,14 @@ const VerifyPhoneNumber = () => {
         const { fullName, phoneNumber, password } = JSON.parse(storedData);
 
         const verifyResponse = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/otp/verify`,
+          `${API_URL}/api/otp/verify`,
           { phoneNumber, otp: otpCode }
         );
 
         if (verifyResponse.status === 200) {
           setErrorMessage(null);
-          // Proceed with final signup request
           const signupResponse = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/signup`,
+            `${API_URL}/api/auth/signup`,
             {
               name: fullName,
               phoneNumber,
@@ -88,8 +85,8 @@ const VerifyPhoneNumber = () => {
           );
 
           if (signupResponse.status === 201) {
-            localStorage.removeItem('signupData'); // Cleanup localStorage after successful signup
-            router.push('/login'); // Navigate to login page
+            localStorage.removeItem('signupData');
+            router.push('/login');
           } else {
             setErrorMessage('Error signing up. Please try again.');
           }
@@ -112,7 +109,7 @@ const VerifyPhoneNumber = () => {
       const storedData = localStorage.getItem('signupData');
       if (storedData) {
         const { phoneNumber } = JSON.parse(storedData);
-        await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/otp/send`, { phoneNumber });
+        await axios.post(`${API_URL}/api/otp/send`, { phoneNumber });
         setTimeRemaining(initialTime);
         setShowResend(false);
         setNotification({
@@ -132,6 +129,7 @@ const VerifyPhoneNumber = () => {
   };
 
   return (
+    // JSX remains unchanged
     <div className="flex-1 mt-[100px] p-2 sm:p-2 flex flex-col justify-center gap-20 overflow-hidden">
       <Logo />
       <div className="flex flex-col items-center gap-10">
@@ -146,7 +144,7 @@ const VerifyPhoneNumber = () => {
             <Input
               key={index}
               ref={(el) => {
-                inputsRef.current[index] = el; // Explicitly void
+                inputsRef.current[index] = el;
               }}
               type="text"
               maxLength={1}

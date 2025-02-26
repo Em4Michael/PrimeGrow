@@ -14,6 +14,8 @@ interface Summary {
   tooltip: string;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
+
 const SummaryCard = () => {
   const [summaries, setSummaries] = useState<Summary[]>([
     { title: 'Total Sales', value: '$0', change: '0%', isUp: true, icon: '/assets/Icon.svg', tooltip: 'Sales this month' },
@@ -29,7 +31,6 @@ const SummaryCard = () => {
       const token = Cookies.get('token');
 
       if (!token) {
-        // User not logged in - use defaults
         setSummaries([
           { title: 'Total Sales', value: '$0', change: '0%', isUp: true, icon: '/assets/Icon.svg', tooltip: 'Sales this month' },
           { title: 'Total Orders', value: '0', change: '0%', isUp: true, icon: '/assets/Icon (1).svg', tooltip: 'Orders this week' },
@@ -42,20 +43,16 @@ const SummaryCard = () => {
 
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
-
-        // Fetch sales report data
-        const salesResponse = await axios.get('http://localhost:5000/api/sales-reports', config);
+        const salesResponse = await axios.get(`${API_URL}/api/sales-reports`, config);
         const salesData = salesResponse.data.recentReport || {
           totalSales: 0,
           totalOrders: 0,
           totalPendingOrders: 0,
         };
 
-        // Fetch total users
-        const usersResponse = await axios.get('http://localhost:5000/api/users', config);
+        const usersResponse = await axios.get(`${API_URL}/api/users`, config);
         const totalUsers = usersResponse.data.length || 0;
 
-        // For simplicity, assume no historical data for change calculation; use static changes or fetch additional data if available
         const previousSalesData = salesResponse.data.savedReports?.[1] || {
           totalSales: 0,
           totalOrders: 0,
@@ -96,7 +93,7 @@ const SummaryCard = () => {
           {
             title: 'Total Users',
             value: Number(totalUsers || 0).toLocaleString(),
-            change: '0%', // No historical user count available from provided API; assume static
+            change: '0%',
             isUp: true,
             icon: '/assets/Icon (3).svg',
             tooltip: 'Active users',
@@ -104,7 +101,6 @@ const SummaryCard = () => {
         ]);
       } catch (error) {
         console.error('Error fetching summary data:', error);
-        // Fallback to defaults on error
         setSummaries([
           { title: 'Total Sales', value: '$0', change: '0%', isUp: true, icon: '/assets/Icon.svg', tooltip: 'Sales this month' },
           { title: 'Total Orders', value: '0', change: '0%', isUp: true, icon: '/assets/Icon (1).svg', tooltip: 'Orders this week' },
@@ -120,10 +116,11 @@ const SummaryCard = () => {
   }, []);
 
   if (loading) {
-    return <div className="text-center p-4">Loading...</div>; // Replace with your Loading component if desired
+    return <div className="text-center p-4">Loading...</div>;
   }
 
   return (
+    // JSX remains unchanged
     <div className="bg-gray-100 p-0 w-full">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {summaries.map((summary, index) => (
@@ -135,15 +132,12 @@ const SummaryCard = () => {
           >
             <div className="flex items-start justify-between space-x-3 flex-1">
               <div className="flex-1 space-y-2 overflow-hidden">
-                {/* Title */}
                 <div className="text-gray-600 font-medium text-sm opacity-80 truncate">
                   {summary.title}
                 </div>
-                {/* Value */}
                 <div className="text-xl font-bold text-gray-800 truncate">
                   {summary.value}
                 </div>
-                {/* Change Info */}
                 <div className="flex items-center space-x-1 pt-1 overflow-hidden">
                   {summary.isUp ? (
                     <FaArrowTrendUp className="text-green-500 flex-shrink-0 w-4 h-4" />
@@ -163,7 +157,6 @@ const SummaryCard = () => {
                   </span>
                 </div>
               </div>
-              {/* Icon */}
               <div className="flex-shrink-0 pt-1">
                 <Image
                   src={summary.icon}

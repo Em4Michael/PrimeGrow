@@ -6,7 +6,9 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
-import Cookies from 'js-cookie'; // Corrected import
+import Cookies from 'js-cookie';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
 const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -21,12 +23,9 @@ const Login: React.FC = () => {
   const handleBlur = () => setActiveInput(null);
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
-  const handleClick = () => {
-    router.push('/');
-  };
-  const handleSign = () => {
-    router.push('/signup');
-  };
+  const handleClick = () => router.push('/');
+  const handleSign = () => router.push('/signup');
+
   const validateInputs = () => {
     let isValid = true;
     if (!/^\d{11}$/.test(phoneNumber)) {
@@ -47,7 +46,7 @@ const Login: React.FC = () => {
 
     if (validateInputs()) {
       try {
-        const response = await axios.post('http://localhost:5000/api/auth/login', {
+        const response = await axios.post(`${API_URL}/api/auth/login`, {
           phoneNumber,
           password,
         });
@@ -56,8 +55,8 @@ const Login: React.FC = () => {
           const { token, role, ...rest } = response.data;
           if (token && role) {
             const user = { role, ...rest };
-            Cookies.set('token', token, { expires: 1, sameSite: 'strict', secure: false });
-            Cookies.set('user', JSON.stringify(user), { expires: 1, sameSite: 'strict', secure: false });
+            Cookies.set('token', token, { expires: 1, sameSite: 'strict', secure: true });
+            Cookies.set('user', JSON.stringify(user), { expires: 1, sameSite: 'strict', secure: true });
 
             switch (role) {
               case 'user':
@@ -86,6 +85,7 @@ const Login: React.FC = () => {
   const handleForgotPassword = () => router.push('/forgetPassword');
 
   return (
+    // JSX remains unchanged
     <div className="flex flex-col sm:flex-row-reverse w-full min-h-screen bg-white rounded-2xl overflow-hidden">
       <div className='flex items-center fixed w-full bg-white top-0 z-10 left-0 p-4'>
         <div className='flex items-center cursor-pointer' onClick={handleClick}>

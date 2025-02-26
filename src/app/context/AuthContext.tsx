@@ -1,7 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import Cookies from 'js-cookie'; // Corrected import
+import Cookies from 'js-cookie';
 import axios from 'axios';
 
 interface User {
@@ -28,6 +28,7 @@ interface AuthProviderProps {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -53,8 +54,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (data: any) => {
-    Cookies.set('token', data.token, { expires: 1 });
-    Cookies.set('user', JSON.stringify(data.user), { expires: 1 });
+    Cookies.set('token', data.token, { expires: 1, secure: true });
+    Cookies.set('user', JSON.stringify(data.user), { expires: 1, secure: true });
     setUser(data.user);
     router.push('/profile');
   };
@@ -62,7 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signup = async (signupData: { fullName: string; phoneNumber: string; password: string }) => {
     try {
       localStorage.setItem('signupData', JSON.stringify(signupData));
-      const otpResponse = await axios.post('http://localhost:5000/api/otp/send', {
+      const otpResponse = await axios.post(`${API_URL}/api/otp/send`, {
         phoneNumber: signupData.phoneNumber,
       });
 
@@ -83,13 +84,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!storedData) throw new Error('Signup data not found.');
 
       const { fullName, phoneNumber, password } = JSON.parse(storedData);
-      const verifyResponse = await axios.post('http://localhost:5000/api/otp/verify', {
+      const verifyResponse = await axios.post(`${API_URL}/api/otp/verify`, {
         phoneNumber,
         otp,
       });
 
       if (verifyResponse.status === 200) {
-        const signupResponse = await axios.post('http://localhost:5000/api/auth/signup', {
+        const signupResponse = await axios.post(`${API_URL}/api/auth/signup`, {
           fullName,
           phoneNumber,
           password,
@@ -125,7 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         confirmPassword,
       }));
 
-      const otpResponse = await axios.post('http://localhost:5000/api/otp/send', { phoneNumber });
+      const otpResponse = await axios.post(`${API_URL}/api/otp/send`, { phoneNumber });
       if (otpResponse.status === 200) {
         router.push('/resetverify');
       } else {
@@ -143,13 +144,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (!storedData) throw new Error('Reset data not found.');
 
       const { phoneNumber, newPassword, confirmPassword } = JSON.parse(storedData);
-      const verifyResponse = await axios.post('http://localhost:5000/api/otp/verify', {
+      const verifyResponse = await axios.post(`${API_URL}/api/otp/verify`, {
         phoneNumber,
         otp,
       });
 
       if (verifyResponse.status === 200) {
-        const resetResponse = await axios.post('http://localhost:5000/api/auth/reset-password', {
+        const resetResponse = await axios.post(`${API_URL}/api/auth/reset-password`, {
           phoneNumber,
           newPassword,
           confirmPassword,

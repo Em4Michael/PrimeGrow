@@ -21,6 +21,8 @@ interface WeeklyReport {
   };
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
+
 const DashboardSummary = () => {
   const [reportData, setReportData] = useState<WeeklyReport['expected']>({
     week1: { amount: 0, percent: 0 },
@@ -42,7 +44,6 @@ const DashboardSummary = () => {
 
       const token = Cookies.get('token');
       if (!token) {
-        // User not logged in - use defaults
         setReportData({
           week1: { amount: 0, percent: 0 },
           week2: { amount: 0, percent: 0 },
@@ -54,7 +55,7 @@ const DashboardSummary = () => {
       }
 
       try {
-        const response = await axios.get('http://localhost:5000/api/plant-report', {
+        const response = await axios.get(`${API_URL}/api/plant-report`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -101,6 +102,7 @@ const DashboardSummary = () => {
   const getLimitedPercent = (percent: number) => (percent > 100 ? 100 : percent);
 
   return (
+    // JSX remains unchanged
     <div className="bg-gray-100 p-0 w-full h-full mb-8">
       <h1 className="text-[#202224] font-bold text-3xl leading-tight tracking-tight font-dm-sans mb-8 text-center">
         Dashboard

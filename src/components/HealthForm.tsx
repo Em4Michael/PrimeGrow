@@ -1,19 +1,19 @@
 'use client';
 import React, { useState } from 'react';
-import Input from './Input'; // Adjust the path as needed
-import Button from './Button'; // Adjust the path as needed
-import Loading from './Loading'; // Loading component
-import Notification from './Notification'; // Notification component
-import axios from 'axios'; // Axios for API requests
-import Cookies from 'js-cookie'; // Import js-cookie to access tokens
+import Input from './Input';
+import Button from './Button';
+import Loading from './Loading';
+import Notification from './Notification';
+import axios from 'axios';
+import Cookies from 'js-cookie';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
 const HealthForm: React.FC = () => {
   const [pest, setPest] = useState(false);
   const [disease, setDisease] = useState(false);
   const [defects, setDefects] = useState(false);
   const [description, setDescription] = useState('');
-
-  // Loading and notification states
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error';
@@ -31,23 +31,20 @@ const HealthForm: React.FC = () => {
     };
 
     setIsLoading(true);
-    setNotification(null); // Reset notification on submit
+    setNotification(null);
 
     try {
-      // Retrieve the token from cookies
       const token = Cookies.get('token');
-
       if (!token) {
         throw new Error('Authentication token not found. Please log in again.');
       }
 
-      // Send POST request to the protected API endpoint with Authorization header
       const response = await axios.post(
-        'http://localhost:5000/api/plant-report/health',
+        `${API_URL}/api/plant-report/health`,
         healthData,
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Send the token in the Authorization header
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         }
@@ -55,7 +52,6 @@ const HealthForm: React.FC = () => {
 
       if (response.status === 200 || response.status === 201) {
         setNotification({ type: 'success', message: 'Health report submitted successfully!' });
-        // Clear form fields
         setPest(false);
         setDisease(false);
         setDefects(false);
@@ -73,12 +69,12 @@ const HealthForm: React.FC = () => {
   };
 
   return (
+    // JSX remains unchanged
     <div className="w-full h-full relative bg-white">
       <div className="w-full max-w-md md:max-w-lg lg:max-w-2xl h-auto p-2 bg-[#F7FCF9] rounded-lg mx-auto">
         <form onSubmit={handleSubmit} className="space-y-6">
           <h2 className="text-xl md:text-2xl font-medium text-gray-900">Update Plant’s Health</h2>
 
-          {/* Pest Checkbox */}
           <div className="space-y-2">
             <p className="text-sm md:text-base font-medium text-gray-500">Pest</p>
             <label className="flex items-center space-x-2">
@@ -92,7 +88,6 @@ const HealthForm: React.FC = () => {
             </label>
           </div>
 
-          {/* Disease Checkbox */}
           <div className="space-y-2">
             <p className="text-sm md:text-base font-medium text-gray-500">Disease</p>
             <label className="flex items-center space-x-2">
@@ -106,7 +101,6 @@ const HealthForm: React.FC = () => {
             </label>
           </div>
 
-          {/* Defects Checkbox */}
           <div className="space-y-2">
             <p className="text-sm md:text-base font-medium text-gray-500">Defects</p>
             <label className="flex items-center space-x-2">
@@ -120,7 +114,6 @@ const HealthForm: React.FC = () => {
             </label>
           </div>
 
-          {/* Health Status Description */}
           <div className="space-y-2">
             <p className="text-sm md:text-base font-medium text-gray-500">Overall Health Status</p>
             <textarea
@@ -131,7 +124,6 @@ const HealthForm: React.FC = () => {
             />
           </div>
 
-          {/* Submit Button */}
           <Button
             type="submit"
             className="w-full max-w-lg py-3 mt-3 bg-[#336C36] text-white text-base font-semibold rounded-full"
@@ -141,10 +133,7 @@ const HealthForm: React.FC = () => {
         </form>
       </div>
 
-      {/* Loading Spinner */}
       {isLoading && <Loading />}
-
-      {/* Notification */}
       {notification && (
         <Notification
           type={notification.type}
