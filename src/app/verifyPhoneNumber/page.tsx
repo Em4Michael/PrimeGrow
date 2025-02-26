@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import { useRouter } from 'next/navigation';
-import Logo from '../../components/Logo';
+import Logo from '../../components/logo';
 import Loading from '../../components/Loading';
 import Notification from '../../components/Notification';
 import axios from 'axios';
