@@ -13,7 +13,11 @@ interface WebSocketMessage {
   MO?: number;
   UV?: number;
   RN?: number;
-  timestamp?: number;
+  timestamp?: string | number; // Flexible for different use cases
+  Date?: string; // For WorkersAttendance
+  Time?: string;
+  Access?: string | null;
+  Exit?: string | null;
 }
 
 class WebSocketService {

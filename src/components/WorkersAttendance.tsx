@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import Cookies from 'js-cookie';
-import { useWebSocket } from './websocketService'; // Import the WebSocket hook
+import { useWebSocket } from '../util/websocketService';
 
 interface AttendanceRecord {
   _id?: string;
@@ -15,7 +15,7 @@ interface AttendanceRecord {
 }
 
 interface WorkersAttendanceProps {
-  isSidebarOpen: boolean; // Not used in the component, but kept for consistency
+  isSidebarOpen: boolean;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
@@ -39,7 +39,6 @@ const WorkersAttendance: React.FC<WorkersAttendanceProps> = ({ isSidebarOpen }) 
     (data: AttendanceRecord[]) => {
       let result = [...data];
 
-      // Filter by date range
       if (startDate || endDate) {
         result = result.filter((record) => {
           const recordDate = new Date(record.timestamp);
@@ -53,7 +52,6 @@ const WorkersAttendance: React.FC<WorkersAttendanceProps> = ({ isSidebarOpen }) 
         });
       }
 
-      // Sort data
       result.sort((a, b) => {
         const aValue = a[sortField];
         const bValue = b[sortField];
@@ -109,11 +107,14 @@ const WorkersAttendance: React.FC<WorkersAttendanceProps> = ({ isSidebarOpen }) 
   useEffect(() => {
     if (wsData && wsData.type === 'attendance' && wsData.Date && wsData.Time) {
       const newRecord: AttendanceRecord = {
-        Date: wsData.Date,
-        Time: wsData.Time,
-        Access: wsData.Access ?? null,
-        Exit: wsData.Exit ?? null,
-        timestamp: wsData.timestamp || new Date().toISOString(),
+        Date: wsData.Date, // Now correctly typed
+        Time: wsData.Time, // Now correctly typed
+        Access: wsData.Access ?? null, // Now correctly typed
+        Exit: wsData.Exit ?? null, // Now correctly typed
+        timestamp:
+          typeof wsData.timestamp === 'number'
+            ? new Date(wsData.timestamp).toISOString() // Convert number to string
+            : wsData.timestamp || new Date().toISOString(), // Use string or default
       };
       setAttendanceData((prev) => {
         const updatedData = [newRecord, ...prev.filter((d) => d.timestamp !== newRecord.timestamp)];
@@ -123,7 +124,6 @@ const WorkersAttendance: React.FC<WorkersAttendanceProps> = ({ isSidebarOpen }) 
     }
   }, [wsData, applyFiltersAndSort]);
 
-  // Initial data fetch and WebSocket setup
   useEffect(() => {
     fetchAttendanceData();
   }, [fetchAttendanceData]);
