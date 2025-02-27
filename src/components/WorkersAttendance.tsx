@@ -107,10 +107,10 @@ const WorkersAttendance: React.FC<WorkersAttendanceProps> = ({ isSidebarOpen }) 
   useEffect(() => {
     if (wsData && wsData.type === 'attendance' && wsData.Date && wsData.Time) {
       const newRecord: AttendanceRecord = {
-        Date: wsData.Date, // Now correctly typed
-        Time: wsData.Time, // Now correctly typed
-        Access: wsData.Access ?? null, // Now correctly typed
-        Exit: wsData.Exit ?? null, // Now correctly typed
+        Date: wsData.Date, 
+        Time: wsData.Time, 
+        Access: wsData.Access ?? null, 
+        Exit: wsData.Exit ?? null, 
         timestamp:
           typeof wsData.timestamp === 'number'
             ? new Date(wsData.timestamp).toISOString() // Convert number to string
