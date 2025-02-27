@@ -20,7 +20,7 @@ interface WorkersAttendanceProps {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
-const WorkersAttendance: React.FC<WorkersAttendanceProps> = ({ isSidebarOpen }) => {
+const WorkersAttendance: React.FC = () => {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [filteredData, setFilteredData] = useState<AttendanceRecord[]>([]);
   const [displayData, setDisplayData] = useState<AttendanceRecord[]>([]);
