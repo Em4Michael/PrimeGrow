@@ -1,20 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// SensorData.tsx
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTemperatureHigh, faTint, faFire, faCloudRain, faSun, faBolt } from '@fortawesome/free-solid-svg-icons';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { useWebSocket } from '../util/websocketService';
 
 interface Sensor {
   name: string;
-  icon: any;
+  icon: any; // You can refine this type if needed (e.g., IconDefinition from @fortawesome)
   value: number;
   unit: string;
   color: string;
   maxValue: number;
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://primegrow-server.onrender.com';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
 const SensorData: React.FC = () => {
@@ -26,46 +27,13 @@ const SensorData: React.FC = () => {
     { name: 'UV Exposure', icon: faSun, value: 0, unit: '', color: 'yellow-500', maxValue: 10 },
     { name: 'Rain', icon: faBolt, value: 0, unit: '', color: 'blue-600', maxValue: 100 },
   ]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
-  const connectWebSocket = useCallback(() => {
-    const socket = new WebSocket(WS_URL);
-    socket.onopen = () => {
-      console.log('WebSocket connection established');
-      setIsConnected(true);
-      setError(null);
-    };
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (!(data.pinName && data.state)) {
-          updateSensorsFromData(data);
-          setLastUpdated(new Date(data.timestamp || Date.now()).toLocaleTimeString());
-        }
-      } catch (err) {
-        console.error('Error parsing WebSocket message:', err);
-      }
-    };
-    socket.onclose = (event) => {
-      console.log(`WebSocket closed: ${event.code}, ${event.reason}`);
-      setIsConnected(false);
-      setError('WebSocket connection lost');
-      resetSensorsToZero();
-      setTimeout(connectWebSocket, 5000);
-    };
-    socket.onerror = (err) => {
-      console.error('WebSocket error:', err);
-      setIsConnected(false);
-      setError('WebSocket connection failed');
-      resetSensorsToZero();
-    };
-    return socket;
-  }, [WS_URL]);
+  const { isConnected, data } = useWebSocket();
 
-  const fetchInitialData = useCallback(async () => {
+  const fetchInitialData = async () => {
     const token = Cookies.get('token');
     if (!token) {
       console.log('No authentication token found');
@@ -73,9 +41,12 @@ const SensorData: React.FC = () => {
       return;
     }
     try {
-      const response = await axios.get(`${API_URL}/api/sensor-data/latest`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get<{ [key: string]: number; timestamp: number }>(
+        `${API_URL}/api/sensor-data/latest`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       updateSensorsFromData(response.data);
       setLastUpdated(new Date(response.data.timestamp).toLocaleTimeString());
     } catch (err: any) {
@@ -84,25 +55,37 @@ const SensorData: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [API_URL]);
+  };
 
   useEffect(() => {
     fetchInitialData();
-    const socket = connectWebSocket();
-    return () => socket.close();
-  }, [connectWebSocket, fetchInitialData]);
+  }, []);
+
+  useEffect(() => {
+    if (data && !(data.pinName && data.state)) {
+      updateSensorsFromData(data);
+      setLastUpdated(new Date(data.timestamp || Date.now()).toLocaleTimeString());
+    }
+  }, [data]);
 
   const updateSensorsFromData = (data: any) => {
     setSensors((prevSensors) =>
       prevSensors.map((sensor) => ({
         ...sensor,
         value:
-          sensor.name === 'Temperature' ? (data.TP ?? 0) :
-          sensor.name === 'Humidity' ? (data.HM ?? 0) :
-          sensor.name === 'Heat Index' ? (data.HI ?? 0) :
-          sensor.name === 'Moisture' ? (data.MO ?? 0) :
-          sensor.name === 'UV Exposure' ? (data.UV ?? 0) :
-          sensor.name === 'Rain' ? (data.RN ?? 0) : sensor.value,
+          sensor.name === 'Temperature'
+            ? data.TP ?? 0
+            : sensor.name === 'Humidity'
+            ? data.HM ?? 0
+            : sensor.name === 'Heat Index'
+            ? data.HI ?? 0
+            : sensor.name === 'Moisture'
+            ? data.MO ?? 0
+            : sensor.name === 'UV Exposure'
+            ? data.UV ?? 0
+            : sensor.name === 'Rain'
+            ? data.RN ?? 0
+            : sensor.value,
       }))
     );
   };
@@ -117,18 +100,18 @@ const SensorData: React.FC = () => {
     fetchInitialData();
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        className="w-12 h-12 border-4 border-t-4 border-gray-200 border-t-blue-600 rounded-full"
-      />
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          className="w-12 h-12 border-4 border-t-4 border-gray-200 border-t-blue-600 rounded-full"
+        />
+      </div>
+    );
 
   return (
-    // JSX remains unchanged
     <div className="p-0 w-full min-h-screen overflow-x-hidden bg-gray-50">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -141,7 +124,11 @@ const SensorData: React.FC = () => {
           <div className="flex items-center space-x-4 mt-4 sm:mt-0">
             <span className={`text-sm font-medium ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
               {isConnected ? 'Connected' : 'Disconnected'}
-              <span className={`inline-block w-2 h-2 ml-2 rounded-full ${isConnected ? 'bg-green-600' : 'bg-red-600'} animate-pulse`}></span>
+              <span
+                className={`inline-block w-2 h-2 ml-2 rounded-full ${
+                  isConnected ? 'bg-green-600' : 'bg-red-600'
+                } animate-pulse`}
+              ></span>
             </span>
             <button
               onClick={handleRefresh}

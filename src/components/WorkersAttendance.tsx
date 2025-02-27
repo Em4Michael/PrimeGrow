@@ -1,7 +1,9 @@
+// WorkersAttendance.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { useWebSocket } from './websocketService'; // Import the WebSocket hook
 
 interface AttendanceRecord {
   _id?: string;
@@ -13,61 +15,67 @@ interface AttendanceRecord {
 }
 
 interface WorkersAttendanceProps {
-  isSidebarOpen: boolean;
+  isSidebarOpen: boolean; // Not used in the component, but kept for consistency
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://primegrow-server.onrender.com';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
-const WorkersAttendance: React.FC = () => {
+const WorkersAttendance: React.FC<WorkersAttendanceProps> = ({ isSidebarOpen }) => {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [filteredData, setFilteredData] = useState<AttendanceRecord[]>([]);
   const [displayData, setDisplayData] = useState<AttendanceRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<keyof AttendanceRecord>('timestamp');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState<number>(1);
   const recordsPerPage = 20;
 
-  const applyFiltersAndSort = useCallback((data: AttendanceRecord[]) => {
-    let result = [...data];
+  const { isConnected, data: wsData, send } = useWebSocket();
 
-    if (startDate || endDate) {
-      result = result.filter((record) => {
-        const recordDate = new Date(record.timestamp);
-        const start = startDate ? new Date(startDate) : null;
-        const end = endDate ? new Date(endDate) : null;
+  const applyFiltersAndSort = useCallback(
+    (data: AttendanceRecord[]) => {
+      let result = [...data];
 
-        if (start && end) return recordDate >= start && recordDate <= end;
-        if (start) return recordDate >= start;
-        if (end) return recordDate <= end;
-        return true;
-      });
-    }
+      // Filter by date range
+      if (startDate || endDate) {
+        result = result.filter((record) => {
+          const recordDate = new Date(record.timestamp);
+          const start = startDate ? new Date(startDate) : null;
+          const end = endDate ? new Date(endDate) : null;
 
-    result.sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-
-      if (sortField === 'timestamp') {
-        const aDate = aValue ? new Date(aValue) : new Date(0);
-        const bDate = bValue ? new Date(bValue) : new Date(0);
-        return sortOrder === 'asc'
-          ? aDate.getTime() - bDate.getTime()
-          : bDate.getTime() - aDate.getTime();
+          if (start && end) return recordDate >= start && recordDate <= end;
+          if (start) return recordDate >= start;
+          if (end) return recordDate <= end;
+          return true;
+        });
       }
 
-      return sortOrder === 'asc'
-        ? String(aValue ?? '').localeCompare(String(bValue ?? ''))
-        : String(bValue ?? '').localeCompare(String(aValue ?? ''));
-    });
+      // Sort data
+      result.sort((a, b) => {
+        const aValue = a[sortField];
+        const bValue = b[sortField];
 
-    setFilteredData(result);
-    setDisplayData(result.slice((page - 1) * recordsPerPage, page * recordsPerPage));
-  }, [startDate, endDate, page, sortField, sortOrder]);
+        if (sortField === 'timestamp') {
+          const aDate = aValue ? new Date(aValue) : new Date(0);
+          const bDate = bValue ? new Date(bValue) : new Date(0);
+          return sortOrder === 'asc'
+            ? aDate.getTime() - bDate.getTime()
+            : bDate.getTime() - aDate.getTime();
+        }
+
+        return sortOrder === 'asc'
+          ? String(aValue ?? '').localeCompare(String(bValue ?? ''))
+          : String(bValue ?? '').localeCompare(String(aValue ?? ''));
+      });
+
+      setFilteredData(result);
+      setDisplayData(result.slice((page - 1) * recordsPerPage, page * recordsPerPage));
+    },
+    [startDate, endDate, page, sortField, sortOrder]
+  );
 
   const fetchAttendanceData = useCallback(async () => {
     const token = Cookies.get('token');
@@ -79,12 +87,12 @@ const WorkersAttendance: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/attendance`, {
+      const response = await axios.get<AttendanceRecord[]>(`${API_URL}/api/attendance`, {
         headers: { Authorization: `Bearer ${token}` },
         params: { limit: 1000 },
       });
 
-      const data = response.data.map((record: any) => ({
+      const data = response.data.map((record) => ({
         ...record,
         timestamp: record.timestamp || new Date().toISOString(),
       }));
@@ -97,40 +105,28 @@ const WorkersAttendance: React.FC = () => {
     }
   }, [applyFiltersAndSort]);
 
-  const connectWebSocket = useCallback(() => {
-    const socket = new WebSocket(WS_URL);
-    socket.onopen = () => console.log('WebSocket connected for attendance');
-    socket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        if (message.type === 'attendance' && message.Date && message.Time) {
-          const newRecord: AttendanceRecord = {
-            Date: message.Date,
-            Time: message.Time,
-            Access: message.Access ?? null,
-            Exit: message.Exit ?? null,
-            timestamp: message.timestamp || new Date().toISOString(),
-          };
-          setAttendanceData((prev) => {
-            const updatedData = [newRecord, ...prev.filter((d) => d.timestamp !== newRecord.timestamp)];
-            applyFiltersAndSort(updatedData);
-            return updatedData;
-          });
-        }
-      } catch (err) {
-        console.error('Error parsing WebSocket message:', err);
-      }
-    };
-    socket.onclose = () => console.log('WebSocket disconnected');
-    socket.onerror = (err) => console.error('WebSocket error:', err);
-    return socket;
-  }, [applyFiltersAndSort]);
+  // Handle WebSocket messages
+  useEffect(() => {
+    if (wsData && wsData.type === 'attendance' && wsData.Date && wsData.Time) {
+      const newRecord: AttendanceRecord = {
+        Date: wsData.Date,
+        Time: wsData.Time,
+        Access: wsData.Access ?? null,
+        Exit: wsData.Exit ?? null,
+        timestamp: wsData.timestamp || new Date().toISOString(),
+      };
+      setAttendanceData((prev) => {
+        const updatedData = [newRecord, ...prev.filter((d) => d.timestamp !== newRecord.timestamp)];
+        applyFiltersAndSort(updatedData);
+        return updatedData;
+      });
+    }
+  }, [wsData, applyFiltersAndSort]);
 
+  // Initial data fetch and WebSocket setup
   useEffect(() => {
     fetchAttendanceData();
-    const socket = connectWebSocket();
-    return () => socket.close();
-  }, [fetchAttendanceData, connectWebSocket]);
+  }, [fetchAttendanceData]);
 
   const handleSort = (field: keyof AttendanceRecord) => {
     const newOrder = sortField === field && sortOrder === 'asc' ? 'desc' : 'asc';
@@ -144,22 +140,28 @@ const WorkersAttendance: React.FC = () => {
     applyFiltersAndSort(attendanceData);
   };
 
-  useEffect(() => {
-    applyFiltersAndSort(attendanceData);
-  }, [attendanceData, applyFiltersAndSort]);
-
   if (loading) return <div className="text-center py-10">Loading...</div>;
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden">
-          <motion.div
-             initial={{ opacity: 0, y: -20 }}
-             animate={{ opacity: 1, y: 0 }}
-             transition={{ duration: 0.8, ease: 'easeOut' }}
-             className="p-0 max-w-6xl mx-auto w-full"
-           >
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="p-0 max-w-6xl mx-auto w-full"
+      >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-extrabold text-gray-800">Workers Attendance</h2>
+          <h2 className="text-3xl font-extrabold text-gray-800">
+            Workers Attendance{' '}
+            <span className={`text-sm font-medium ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+              {isConnected ? 'Connected' : 'Disconnected'}
+              <span
+                className={`inline-block w-2 h-2 ml-2 rounded-full ${
+                  isConnected ? 'bg-green-600' : 'bg-red-600'
+                } animate-pulse`}
+              ></span>
+            </span>
+          </h2>
           <button
             onClick={fetchAttendanceData}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

@@ -1,11 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// InstrumentControl.tsx
+import React, { useState, useEffect } from 'react';
 import { FaDoorClosed, FaSprayCan, FaFan, FaLightbulb, FaWater } from 'react-icons/fa';
 import { MdOutlineWindow } from 'react-icons/md';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import { useWebSocket } from '../util/websocketService';
 
 type ToggleKey = 'E_Door' | 'E_motor_Down' | 'E_pest' | 'E_Fan' | 'E_Light' | 'E_Humidifier' | 'E_Pump';
+
+interface Instrument {
+  label: string;
+  stateKey: ToggleKey;
+  icon: JSX.Element;
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
 
 const InstrumentControl: React.FC = () => {
   const [toggleStates, setToggleStates] = useState<Record<ToggleKey, boolean>>({
@@ -17,65 +27,22 @@ const InstrumentControl: React.FC = () => {
     E_Humidifier: false,
     E_Pump: false,
   });
-  const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
-  const instruments = [
-    { label: 'Door', stateKey: 'E_Door' as ToggleKey, icon: <FaDoorClosed className="text-3xl" /> },
-    { label: 'Window', stateKey: 'E_motor_Down' as ToggleKey, icon: <MdOutlineWindow className="text-3xl" /> },
-    { label: 'Pesticide', stateKey: 'E_pest' as ToggleKey, icon: <FaSprayCan className="text-3xl" /> },
-    { label: 'Fan', stateKey: 'E_Fan' as ToggleKey, icon: <FaFan className="text-3xl" /> },
-    { label: 'Light', stateKey: 'E_Light' as ToggleKey, icon: <FaLightbulb className="text-3xl" /> },
-    { label: 'Humidifier', stateKey: 'E_Humidifier' as ToggleKey, icon: <FaFan className="text-3xl" /> },
-    { label: 'Pump', stateKey: 'E_Pump' as ToggleKey, icon: <FaWater className="text-3xl" /> },
+  const { isConnected, data, send } = useWebSocket();
+
+  const instruments: Instrument[] = [
+    { label: 'Door', stateKey: 'E_Door', icon: <FaDoorClosed className="text-3xl" /> },
+    { label: 'Window', stateKey: 'E_motor_Down', icon: <MdOutlineWindow className="text-3xl" /> },
+    { label: 'Pesticide', stateKey: 'E_pest', icon: <FaSprayCan className="text-3xl" /> },
+    { label: 'Fan', stateKey: 'E_Fan', icon: <FaFan className="text-3xl" /> },
+    { label: 'Light', stateKey: 'E_Light', icon: <FaLightbulb className="text-3xl" /> },
+    { label: 'Humidifier', stateKey: 'E_Humidifier', icon: <FaFan className="text-3xl" /> },
+    { label: 'Pump', stateKey: 'E_Pump', icon: <FaWater className="text-3xl" /> },
   ];
 
-  const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'wss://primegrow-server.onrender.com';
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://primegrow-server.onrender.com';
-
-  const connectWebSocket = useCallback(() => {
-    const socket = new WebSocket(WS_URL);
-
-    socket.onopen = () => {
-      console.log('WebSocket connection established');
-      setIsConnected(true);
-      setError(null);
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('WebSocket message received:', data);
-        if (data.pinName && data.state) {
-          setToggleStates((prev) => ({
-            ...prev,
-            [data.pinName]: data.state === 'on',
-          }));
-          setLastUpdated(new Date().toLocaleTimeString());
-        }
-      } catch (err) {
-        console.error('Error parsing WebSocket message:', err);
-      }
-    };
-
-    socket.onclose = (event) => {
-      console.log(`WebSocket closed: ${event.code}, ${event.reason}`);
-      setIsConnected(false);
-      setError('WebSocket connection lost');
-      setTimeout(connectWebSocket, 5000);
-    };
-
-    socket.onerror = (err) => {
-      console.error('WebSocket error:', err);
-      setIsConnected(false);
-      setError('WebSocket connection failed');
-    };
-
-    return socket;
-  }, [WS_URL]);
-
-  const fetchInitialStates = useCallback(async () => {
+  const fetchInitialStates = async () => {
     const token = Cookies.get('token');
     if (!token) {
       console.log('No authentication token found');
@@ -84,25 +51,36 @@ const InstrumentControl: React.FC = () => {
 
     try {
       const promises = instruments.map(async (instrument) => {
-        const response = await axios.get(`${API_URL}/api/pin-state/${instrument.stateKey}`, {
+        const response = await axios.get<{ state: string }>(`${API_URL}/api/pin-state/${instrument.stateKey}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         return { key: instrument.stateKey, state: response.data.state === 'on' };
       });
       const states = await Promise.all(promises);
-      const newStates = states.reduce((acc, { key, state }) => ({ ...acc, [key]: state }), {} as Record<ToggleKey, boolean>);
+      const newStates = states.reduce<Record<ToggleKey, boolean>>(
+        (acc, { key, state }) => ({ ...acc, [key]: state }),
+        {} as Record<ToggleKey, boolean>
+      );
       setToggleStates((prev) => ({ ...prev, ...newStates }));
     } catch (err: any) {
       console.error('Error fetching initial pin states:', err.response?.data || err.message);
       setError(`Failed to load initial states: ${err.response?.statusText || err.message}`);
     }
-  }, [API_URL, instruments]);
+  };
 
   useEffect(() => {
     fetchInitialStates();
-    const socket = connectWebSocket();
-    return () => socket.close();
-  }, [connectWebSocket, fetchInitialStates]);
+  }, []);
+
+  useEffect(() => {
+    if (data?.pinName && data?.state) {
+      setToggleStates((prev) => ({
+        ...prev,
+        [data.pinName as ToggleKey]: data.state === 'on',
+      }));
+      setLastUpdated(new Date().toLocaleTimeString());
+    }
+  }, [data]);
 
   const handleToggle = async (key: ToggleKey) => {
     if (!isConnected) {
@@ -111,21 +89,19 @@ const InstrumentControl: React.FC = () => {
     }
 
     const newState = !toggleStates[key];
-    const socket = new WebSocket(WS_URL);
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ type: 'toggle', pinName: key }));
-      setToggleStates((prev) => ({ ...prev, [key]: newState }));
-      socket.close();
+    send({ type: 'toggle', pinName: key });
+    setToggleStates((prev) => ({ ...prev, [key]: newState }));
 
-      const token = Cookies.get('token');
-      if (token) {
-        axios.post(
+    const token = Cookies.get('token');
+    if (token) {
+      axios
+        .post(
           `${API_URL}/api/toggle`,
           { pinName: key, state: newState ? 'on' : 'off' },
           { headers: { Authorization: `Bearer ${token}` } }
-        ).catch((err) => console.error('Error syncing pin state:', err));
-      }
-    };
+        )
+        .catch((err) => console.error('Error syncing pin state:', err));
+    }
   };
 
   return (
@@ -141,7 +117,11 @@ const InstrumentControl: React.FC = () => {
           <div className="flex items-center space-x-4 mt-4 sm:mt-0">
             <span className={`text-sm font-medium ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
               {isConnected ? 'Connected' : 'Disconnected'}
-              <span className={`inline-block w-2 h-2 ml-2 rounded-full ${isConnected ? 'bg-green-600' : 'bg-red-600'} animate-pulse`}></span>
+              <span
+                className={`inline-block w-2 h-2 ml-2 rounded-full ${
+                  isConnected ? 'bg-green-600' : 'bg-red-600'
+                } animate-pulse`}
+              ></span>
             </span>
           </div>
         </div>
